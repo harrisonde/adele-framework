@@ -89,8 +89,8 @@ func doNew(appName string) {
 		}
 	}
 
-	_ = os.Remove("./" + appName + "Makefile.mac")
-	_ = os.Remove("./" + appName + "Makefile.windows")
+	_ = os.Remove("./" + appName + "/Makefile.mac")
+	_ = os.Remove("./" + appName + "/Makefile.windows")
 
 	// update the go.mod for the user
 	color.Yellow("\tCreating go.mod file ...")

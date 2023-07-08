@@ -1,0 +1,12 @@
+.DS_Store
+.env
+.env.backup
+.env.production
+.idea
+/.vscode
+cache/testdata/*
+coverage.out
+dist/*
+vendor/*
+npm-debug.log
+yarn-error.log

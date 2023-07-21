@@ -3,7 +3,8 @@ package adel
 import (
 	"fmt"
 	"log"
-	"net/http"
+	"net"
+	"net/rpc"
 	"os"
 	"strconv"
 	"strings"
@@ -15,6 +16,10 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/gomodule/redigo/redis"
 	"github.com/harrisonde/adel/cache"
+	"github.com/harrisonde/adel/filesystem/miniofilesystem"
+	"github.com/harrisonde/adel/filesystem/s3filesystem"
+	"github.com/harrisonde/adel/filesystem/sftpfilesystem"
+	"github.com/harrisonde/adel/filesystem/webdavfilesystem"
 	"github.com/harrisonde/adel/mailer"
 	"github.com/harrisonde/adel/render"
 	"github.com/harrisonde/adel/session"
@@ -30,6 +35,8 @@ var redisPool *redis.Pool
 var badgerPool *badger.DB
 
 var sessionManager *scs.SessionManager
+
+var maintenanceMode bool
 
 type Adel struct {
 	AppName       string
@@ -49,6 +56,11 @@ type Adel struct {
 	Scheduler     *cron.Cron
 	Mail          mailer.Mail
 	Server        Server
+	FileSystem    map[string]interface{}
+	S3            s3filesystem.S3
+	SFTP          sftpfilesystem.SFTP
+	WebDAV        webdavfilesystem.WebDAV
+	Minio         miniofilesystem.Minio
 }
 
 type Server struct {
@@ -57,6 +69,7 @@ type Server struct {
 	Secure     bool
 	URL        string
 }
+
 type config struct {
 	port        string
 	renderer    string
@@ -64,6 +77,12 @@ type config struct {
 	sessionType string
 	database    databaseConfig
 	redis       redisConfig
+	uploads     uploadConfig
+}
+
+type uploadConfig struct {
+	allowedMimeTypes []string
+	maxUploadSize    int64
 }
 
 // Called by project consuming our package
@@ -72,7 +91,7 @@ func (a *Adel) New(rootPath string) error {
 	// Hold our root path and folder names
 	pathConfig := initPaths{
 		rootPath:    rootPath,
-		folderNames: []string{"handlers", "migrations", "views", "mail", "data", "public", "tmp", "logs", "middleware"},
+		folderNames: []string{"handlers", "migrations", "views", "mail", "data", "public", "tmp", "logs", "middleware", "screenshots"},
 	}
 
 	// Create folders
@@ -101,6 +120,20 @@ func (a *Adel) New(rootPath string) error {
 	a.RootPath = rootPath
 	a.Mail = a.createMailer()
 	a.Routes = a.routes().(*chi.Mux) // Cast
+
+	// file upload
+	exploded := strings.Split(os.Getenv("FILE_TYPES_ALLOWED"), ",")
+	var mimeTypes []string
+	for _, m := range exploded {
+		mimeTypes = append(mimeTypes, m)
+	}
+
+	var maxUploadSize int64
+	if max, err := strconv.Atoi(os.Getenv("FILE_MAX_UPLOAD_SIZE")); err != nil {
+		maxUploadSize = 10 << 20 // 10 mb
+	} else {
+		maxUploadSize = int64(max)
+	}
 
 	// Connect to database
 	if os.Getenv("DATABASE_TYPE") != "" {
@@ -160,6 +193,10 @@ func (a *Adel) New(rootPath string) error {
 			password: os.Getenv("REDIS_PASSWORD"),
 			prefix:   os.Getenv("REDIS_PREFIX"),
 		},
+		uploads: uploadConfig{
+			maxUploadSize:    maxUploadSize,
+			allowedMimeTypes: mimeTypes,
+		},
 	}
 
 	secure := true
@@ -211,6 +248,9 @@ func (a *Adel) New(rootPath string) error {
 	// Create renderer engine
 	a.createRenderer()
 
+	// Filesystem
+	a.FileSystem = a.createFileSystem()
+
 	// Start the mail channel
 	go a.Mail.ListenForMail()
 
@@ -227,35 +267,6 @@ func (a *Adel) Init(p initPaths) error {
 		}
 	}
 	return nil
-}
-
-// Start the web server
-func (a *Adel) ListenAndServe() {
-	srv := &http.Server{
-		Addr:         fmt.Sprintf(":%s", os.Getenv("PORT")),
-		ErrorLog:     a.ErrorLog,
-		Handler:      a.Routes,
-		IdleTimeout:  30 * time.Second,
-		ReadTimeout:  30 * time.Second,
-		WriteTimeout: 600 * time.Second,
-	}
-
-	if a.DB.Pool != nil {
-		defer a.DB.Pool.Close()
-	}
-
-	if redisPool != nil {
-		defer redisPool.Close()
-	}
-
-	if badgerPool != nil {
-		defer badgerPool.Close()
-	}
-
-	a.InfoLog.Printf("Listening on port %s", os.Getenv("PORT"))
-
-	err := srv.ListenAndServe()
-	a.ErrorLog.Fatal(err)
 }
 
 // Create env, if it does not already exist.
@@ -376,4 +387,99 @@ func (a *Adel) createClientBadgerCache() *cache.BadgerCache {
 		Conn: a.createBadgerPool(),
 	}
 	return &cacheClient
+}
+
+// Create the filesystem for the application
+func (a *Adel) createFileSystem() map[string]interface{} {
+	fileSystem := make(map[string]interface{})
+
+	if os.Getenv("S3_KEY") != "" {
+		s3 := s3filesystem.S3{
+			Key:    os.Getenv("S3_KEY"),
+			Secret: os.Getenv("S3_SECRET"),
+			Region: os.Getenv("S3_REGION"),
+			Bucket: os.Getenv("S3_BUCKET"),
+		}
+		fileSystem["S3"] = s3
+		a.S3 = s3
+	}
+
+	if os.Getenv("MINIO_SECRET") != "" {
+		useSSL := false
+		if strings.ToLower(os.Getenv("MINIO_USESSL")) == "true" {
+			useSSL = true
+		}
+
+		minio := miniofilesystem.Minio{
+			Endpoint: os.Getenv("MINIO_ENDPOINT"),
+			Key:      os.Getenv("MINIO_KEY"),
+			Secret:   os.Getenv("MINIO_SECRET"),
+			UseSSL:   useSSL,
+			Region:   os.Getenv("MINIO_REGION"),
+			Bucket:   os.Getenv("MINIO_BUCKET"),
+		}
+		fileSystem["MINIO"] = minio
+		a.Minio = minio
+	}
+
+	if os.Getenv("SFTP_HOST") != "" {
+		sftp := sftpfilesystem.SFTP{
+			Host:     os.Getenv("SFTP_HOST"),
+			User:     os.Getenv("SFTP_USER"),
+			Password: os.Getenv("SFTP_PASSWORD"),
+			Port:     os.Getenv("SFTP_PORT"),
+		}
+		fileSystem["SFTP"] = sftp
+		a.SFTP = sftp
+	}
+
+	if os.Getenv("WEBDAV_HOST") != "" {
+		webDAV := webdavfilesystem.WebDAV{
+			Host:     os.Getenv("WEBDAV_HOST"),
+			User:     os.Getenv("WEBDAV_USER"),
+			Password: os.Getenv("WEBDAV_PASSWORD"),
+		}
+		fileSystem["WEBDAV"] = webDAV
+		a.WebDAV = webDAV
+	}
+
+	return fileSystem
+
+}
+
+type RPCServer struct{}
+
+func (r *RPCServer) MaintenanceMode(inMaintenanceMode bool, resp *string) error {
+	if inMaintenanceMode {
+		maintenanceMode = true
+		*resp = "Server in maintenance mode"
+	} else {
+		maintenanceMode = false
+		*resp = "Server live!"
+	}
+	return nil
+}
+
+func (a *Adel) listenRPC() {
+	if os.Getenv("RPC_PORT") != "" {
+		a.InfoLog.Println("Starting RPC server on port", os.Getenv("RPC_PORT"))
+		err := rpc.Register(new(RPCServer))
+		if err != nil {
+			a.ErrorLog.Println(err)
+			return
+		}
+		listen, err := net.Listen("tcp", "127.0.0.1:"+os.Getenv("RPC_PORT"))
+		if err != nil {
+			a.ErrorLog.Println(err)
+			return
+		}
+		for {
+			rpcConn, err := listen.Accept()
+			if err != nil {
+				continue
+			}
+			go rpc.ServeConn(rpcConn)
+
+		}
+	}
 }

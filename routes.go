@@ -8,7 +8,7 @@ import (
 )
 
 func (a *Adel) routes() http.Handler {
-	mux := chi.NewRouter() // Multiplexer
+	mux := chi.NewRouter()
 	mux.Use(middleware.RequestID)
 	mux.Use(middleware.RealIP)
 	if a.Debug {
@@ -18,6 +18,7 @@ func (a *Adel) routes() http.Handler {
 	mux.Use(middleware.Recoverer)
 	mux.Use(a.SessionLoad)
 	mux.Use(a.NoSurf)
+	mux.Use(a.CheckForMaintenanceMode)
 
 	return mux
 }

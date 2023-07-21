@@ -1,28 +1,39 @@
 package main
 
 import (
-	"fmt"
-	"time"
-
 	"github.com/fatih/color"
 )
 
 func doAuth() error {
+
+	checkForDb()
+
 	// Create Migrations
 	dbType := ade.DB.DataType
-	fileName := fmt.Sprintf("%d_create_auth_tables", time.Now().UnixMicro())
-	upFile := ade.RootPath + "/migrations/" + fileName + ".up.sql"
-	downFile := ade.RootPath + "/migrations/" + fileName + ".down.sql"
 
-	err := copyFileFromTemplate("templates/migrations/auth_tables."+dbType+".sql", upFile)
+	tx, err := ade.PopConnect()
+	if err != nil {
+		exitGracefully(err)
+	}
+	defer tx.Close()
+
+	upBytes, err := templateFS.ReadFile("templates/migrations/auth_tables." + dbType + ".sql")
 	if err != nil {
 		exitGracefully(err)
 	}
 
-	err = copyDataToFile([]byte("drop table if exists users cascade; drop table if exists tokens cascade; drop table if exists remember_tokens;"), downFile)
+	downBytes := []byte("drop table if exists users cascade; drop table if exists tokens cascade; drop table if exists remember_tokens;")
+	if err != nil {
+		exitGracefully(err)
+	}
+
+	err = ade.CreatePopMigration(upBytes, downBytes, "auth", "sql")
+	if err != nil {
+		exitGracefully(err)
+	}
 
 	// Run Migrations
-	err = doMigrate("up", "")
+	err = ade.RunPopMigrations(tx)
 	if err != nil {
 		exitGracefully(err)
 	}
@@ -63,17 +74,17 @@ func doAuth() error {
 		exitGracefully(err)
 	}
 
-	err = copyFileFromTemplate("templates/mailer/password-reset.html.tmpl", ade.RootPath+"/handlers/password-reset.html.tmpl")
+	err = copyFileFromTemplate("templates/mailer/password-reset.html.tmpl", ade.RootPath+"/mail/password-reset.html.tmpl")
 	if err != nil {
 		exitGracefully(err)
 	}
 
-	err = copyFileFromTemplate("templates/mailer/password-reset.plain.tmpl", ade.RootPath+"/handlers/password-reset.plain.tmpl")
+	err = copyFileFromTemplate("templates/mailer/password-reset.plain.tmpl", ade.RootPath+"/mail/password-reset.plain.tmpl")
 	if err != nil {
 		exitGracefully(err)
 	}
 
-	err = copyFileFromTemplate("templates/views/login.jet", ade.RootPath+"/views/views.jet")
+	err = copyFileFromTemplate("templates/views/login.jet", ade.RootPath+"/views/login.jet")
 	if err != nil {
 		exitGracefully(err)
 	}

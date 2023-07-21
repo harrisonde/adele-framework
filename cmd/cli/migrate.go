@@ -1,35 +1,38 @@
 package main
 
 func doMigrate(arg2, arg3 string) error {
-	dsn := getDSN()
+
+	checkForDb()
+
+	tx, err := ade.PopConnect()
+	if err != nil {
+		exitGracefully(err)
+	}
+
+	defer tx.Close()
 
 	switch arg2 {
 	case "up":
-		err := ade.MigrateUp(dsn)
+		err := ade.RunPopMigrations(tx)
 		if err != nil {
 			return err
 		}
 
 	case "down":
 		if arg3 == "all" {
-			err := ade.MigrateDownAll(dsn)
+			err := ade.PopMigrateDown(tx, -1)
 			if err != nil {
 				return err
 			}
 		} else {
-			err := ade.Steps(-1, dsn)
+			err := ade.PopMigrateDown(tx, 1)
 			if err != nil {
 				return err
 			}
 		}
 
 	case "reset":
-		err := ade.MigrateDownAll(dsn)
-		if err != nil {
-			return err
-		}
-
-		err = ade.MigrateUp(dsn)
+		err := ade.PopMigrateReset(tx)
 		if err != nil {
 			return err
 		}

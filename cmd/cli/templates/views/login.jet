@@ -1,24 +1,35 @@
-{{extends "./layouts/base.jet"}}
+{{ extends "./layouts/base.jet"}}
 
 {{block browserTitle()}}
-Login
+    Adel: Login
 {{end}}
 
-{{block css()}} {{end}}
+
+{{block css()}}
+
+{{end}}
 
 {{block pageContent()}}
+
+
 <h2 class="mt-5 text-center">Login</h2>
 
-
 <hr>
+
+
+{{if .Error != ""}}
+<div class="alert alert-danger text-center">
+    {{.Error}}
+</div>
+{{end}}
 
 {{if .Flash != ""}}
 <div class="alert alert-info text-center">
     {{.Flash}}
 </div>
 {{end}}
-<div class="row">
-    <div class="col text-center">
+
+<div class="col text-center">
         <a href="/auth/github?provider=github" class="btn btn-outline-secondary">
             <i class="bi bi-github"></i>
             Login with GitHub
@@ -30,41 +41,50 @@ Login
             <i class="bi bi-google"></i>
             Login with Google
         </a>
+
+            <a href="/auth/microsoftonline?provider=microsoftonline" class="btn btn-outline-secondary mt-3">
+            <i class="bi bi-microsoft"></i>
+            Login with Microsoft
+        </a>
     </div>
-    <div class="col">
-        <form method="post" action="/users/login"
-              name="login-form" id="login-form"
-              class="d-block needs-validation"
-              autocomplete="off" novalidate="">
 
-            <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+<form method="post" action="/login"
+    name="login-form" id="login-form"
+    class="d-block needs-validation"
+    autocomplete="off" novalidate="">
 
-            <div class="mb-3">
-                <label for="email" class="form-label">Email</label>
-                <input type="email" class="form-control" id="email" name="email"
-                       required="" autocomplete="email-new">
-            </div>
+    <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
 
-            <div class="mb-3">
-                <label for="password" class="form-label">Password</label>
-                <input type="password" class="form-control" id="password" name="password"
-                       required="" autocomplete="password-new">
-            </div>
-
-            <div class="form-check form-switch">
-                <input class="form-check-input" type="checkbox" value="remember" name="remember" id="remember">
-                <label class="form-check-label" for="remember">Remember me</label>
-            </div>
-
-            <hr>
-
-            <a href="javascript:void(0)" class="btn btn-primary" onclick="val()">Login</a>
-            <p class="mt-2">
-                <small><a href="/users/forgot-password">Forgot password?</a></small>
-            </p>
-
-        </form>
+    <div class="mb-3">
+        <label for="email" class="form-label">Email</label>
+        <input type="email" class="form-control" id="email" name="email"
+            required="" autocomplete="email-new">
     </div>
+
+    <div class="mb-3">
+        <label for="password" class="form-label">Password</label>
+        <input type="password" class="form-control" id="password" name="password"
+            required="" autocomplete="password-new">
+    </div>
+
+    <hr>
+
+    <div class="form-check for-switch">
+        <input class="form-check-input" type="checkbox" value="remember" name="remember" id="remember">
+        <label class="form-check-label" for="remember">Remember me</label>
+    </div>
+
+    <br>
+
+    <a href="javascript:void(0)" class="btn btn-primary" onclick="val()">Login</a>
+    <p class="mt-2">
+        <small><a href="/users/forgot-password">Forgot password?</a></small>
+    </p>
+
+</form>
+
+<div class="text-center">
+    <a class="btn btn-outline-secondary" href="/">Back...</a>
 </div>
 
 <p>&nbsp;</p>
@@ -72,18 +92,18 @@ Login
 {{end}}
 
 {{block js()}}
-<script>
-    function val() {
-        let form = document.getElementById("login-form");
-        if (form.checkValidity() === false) {
-            this.event.preventDefault();
-            this.event.stopPropagation();
-            form.classList.add("was-validated");
-            return;
-        }
-
+ <script>
+function val() {
+    let form = document.getElementById("login-form");
+    if (form.checkValidity() === false){
+        this.event.preventDefault();
+        this.event.stopPropagation();
         form.classList.add("was-validated");
-        form.submit();
+        return;
     }
+
+    form.classList.add("was-validated");
+    form.submit();
+}
 </script>
 {{end}}

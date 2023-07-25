@@ -74,6 +74,11 @@ func doAuth() error {
 		exitGracefully(err)
 	}
 
+	err = copyFileFromTemplate("templates/handlers/oauth-handlers.go.txt", ade.RootPath+"/handlers/oauth-handlers.go")
+	if err != nil {
+		exitGracefully(err)
+	}
+
 	err = copyFileFromTemplate("templates/mailer/password-reset.html.tmpl", ade.RootPath+"/mail/password-reset.html.tmpl")
 	if err != nil {
 		exitGracefully(err)

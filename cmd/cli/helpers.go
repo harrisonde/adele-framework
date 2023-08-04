@@ -24,6 +24,7 @@ func setup(arg1, arg2 string) {
 		}
 
 		ade.RootPath = path
+		ade.AppName = os.Getenv("APP_NAME")
 		ade.DB.DataType = os.Getenv("DATABASE_TYPE")
 	}
 }

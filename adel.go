@@ -20,14 +20,16 @@ import (
 	"github.com/harrisonde/adel/filesystem/s3filesystem"
 	"github.com/harrisonde/adel/filesystem/sftpfilesystem"
 	"github.com/harrisonde/adel/filesystem/webdavfilesystem"
+	"github.com/harrisonde/adel/logger"
 	"github.com/harrisonde/adel/mailer"
 	"github.com/harrisonde/adel/render"
 	"github.com/harrisonde/adel/session"
 	"github.com/joho/godotenv"
 	"github.com/robfig/cron/v3"
+	"github.com/sirupsen/logrus"
 )
 
-const verson = "1.0.0"
+const version = "1.0.0"
 
 var myRedisCache *cache.RedisCache
 var myBadgerCache *cache.BadgerCache
@@ -282,10 +284,28 @@ func (a *Adel) checkDotEnv(path string) error {
 func (a *Adel) startLoggers() (*log.Logger, *log.Logger) {
 	var infoLog *log.Logger
 	var errorLog *log.Logger
+	var format *logrus.Entry
+	if os.Getenv("LOG_FORMAT") == "JSON" {
+		l := logrus.StandardLogger()
+		l.SetFormatter(&logrus.JSONFormatter{})
+		format = l.WithField("logger", "std")
+	} else {
+		l := logrus.StandardLogger()
+		l.SetFormatter(&logger.Formatter{})
+		format = l.WithField("logger", "std")
+	}
 
-	// Create
-	infoLog = log.New(os.Stdout, "INFO\t", log.Ldate|log.Ltime)
-	errorLog = log.New(os.Stdout, "ERROR\t", log.Ldate|log.Ltime|log.Lshortfile)
+	infoLog = log.New(os.Stdout, "", log.Ldate|log.Ltime|log.Lshortfile)
+	infoLog.SetOutput(&logger.IoToLogWriter{
+		Entry: format,
+		Type:  "Info",
+	})
+
+	errorLog = log.New(os.Stdout, "", log.Ldate|log.Ltime|log.Lshortfile)
+	errorLog.SetOutput(&logger.IoToLogWriter{
+		Entry: logrus.StandardLogger().WithField("logger", "std"),
+		Type:  "Error",
+	})
 
 	return infoLog, errorLog
 
@@ -374,7 +394,7 @@ func (a *Adel) createClientRedisCache() *cache.RedisCache {
 
 // Badger
 func (a *Adel) createBadgerPool() *badger.DB {
-	db, err := badger.Open(badger.DefaultOptions(a.RootPath + "/tmp/badger"))
+	db, err := badger.Open(badger.DefaultOptions(a.RootPath + "/tmp/badger").WithLogger(nil))
 	if err != nil {
 		return nil
 	}

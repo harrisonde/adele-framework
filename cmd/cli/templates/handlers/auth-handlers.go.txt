@@ -1,27 +1,18 @@
 package handlers
 
 import (
-	"bytes"
 	"crypto/sha256"
 	"encoding/base64"
-	"encoding/json"
 	"fmt"
-	"log"
+
 	"myapp/data"
 	"net/http"
-	"os"
-	"strings"
+
 	"time"
 
 	"github.com/CloudyKit/jet/v6"
-	"github.com/go-chi/chi/v5"
-	"github.com/gorilla/sessions"
 	"github.com/harrisonde/adel/mailer"
 	"github.com/harrisonde/adel/urlsigner"
-	"github.com/markbates/goth"
-	"github.com/markbates/goth/gothic"
-	"github.com/markbates/goth/providers/github"
-	"github.com/markbates/goth/providers/google"
 )
 
 func (h *Handlers) Login(w http.ResponseWriter, r *http.Request) {

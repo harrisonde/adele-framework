@@ -115,6 +115,9 @@ func (t *Token) Insert(token Token, u User) error {
 	token.UpdatedAt = time.Now()
 	token.FirstName = u.FirstName
 	token.Email = u.Email
+	token.UserID = u.ID
+	token.PlainText = token.PlainText
+	token.Expires = token.Expires
 
 	_, err = collection.Insert(token)
 	if err != nil {

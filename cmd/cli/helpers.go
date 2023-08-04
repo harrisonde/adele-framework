@@ -75,15 +75,16 @@ func showHelp() {
 	color.Yellow(`Available commands:
 
 	help                           - show help commands
-	up							   - take the server out of maintenance mode
-	down						   - put the server in maintenance mode
+	up                             - take the server out of maintenance mode
+	down                           - put the server in maintenance mode
+	serve                          - start the application server to handle http requests
 	make                           - show all make commands
 	make auth                      - install authentication
 	make handler <name>            - create a stub handler in the handlers directory
 	make mail <name>               - create two stub mail templates in the mail directory
 	make migration <name> <format> - create a new migration; format=sql/fizz (default fizz)
 	make model <name>              - create a new model in the data directory
-	make session 		           - create a table in the database to store sessions
+	make session                   - create a table in the database to store sessions
 	migrate                        - run all migration that have not been run
 	migrate down                   - reverse the most recent migration
 	migrate reset                  - run all down migrations and all up migrations

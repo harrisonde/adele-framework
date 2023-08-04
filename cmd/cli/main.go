@@ -2,6 +2,7 @@ package main
 
 import (
 	"errors"
+	"fmt"
 	"os"
 
 	"github.com/fatih/color"
@@ -30,6 +31,9 @@ func main() {
 
 	case "down":
 		rpcClient(true)
+
+	case "serve":
+		doStart()
 
 	case "new":
 		if arg2 == "" {
@@ -111,4 +115,23 @@ func exitGracefully(err error, msg ...string) {
 	}
 
 	os.Exit(0)
+}
+
+func writeOutput(message string, writeType ...string) {
+	w := ""
+
+	if len(writeType) > 0 {
+		w = writeType[0]
+	}
+
+	switch w {
+	case "info":
+		notice := color.New(color.BgBlue, color.FgWhite).SprintFunc()
+		fmt.Printf("\n %s %s\n", notice(" INFO "), message)
+
+	case "line":
+	default:
+		fmt.Printf("\n %s\n", message)
+	}
+
 }

@@ -4,6 +4,12 @@ import "net/http"
 
 func (m *Middleware) AuthToken(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		header := r.Header.Get("Accept")
+		if header != "application/json" {
+			http.Redirect(w, r, "/", http.StatusSeeOther)
+			return
+		}
+
 		_, err := m.Models.Tokens.AuthenticateToken(r)
 		if err != nil {
 			var payload struct {
@@ -16,5 +22,7 @@ func (m *Middleware) AuthToken(next http.Handler) http.Handler {
 
 			_ = m.App.WriteJSON(w, http.StatusUnauthorized, payload)
 		}
+
+		next.ServeHTTP(w, r)
 	})
 }

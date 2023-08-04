@@ -11,9 +11,9 @@ coverage:
 	@go test -cover ./...
 
 ## build_cli: builds the command line tool celeritas and copies it to myapp
-build_cli:
+build_cli_copy:
 	@go build -o ../myapp/adel ./cmd/cli
 
 ## builds the command line tool /dist dir
-build:
+build_cli:
 	@go build -o ./dist/adel ./cmd/cli

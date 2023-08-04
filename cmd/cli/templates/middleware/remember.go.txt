@@ -12,8 +12,6 @@ import (
 func (m *Middleware) CheckRemember(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
-		m.App.InfoLog.Println("checkremember", m.App.Session.Exists(r.Context(), "userID"))
-
 		if !m.App.Session.Exists(r.Context(), "userID") {
 			// user is not logged in
 			cookie, err := r.Cookie(fmt.Sprintf("_%s_remember", m.App.AppName))
@@ -23,7 +21,6 @@ func (m *Middleware) CheckRemember(next http.Handler) http.Handler {
 				next.ServeHTTP(w, r)
 			} else {
 				// found cookie in request, validate it
-				m.App.InfoLog.Printf("3")
 				key := cookie.Value
 				var u data.User
 				if len(key) > 0 {

@@ -20,6 +20,99 @@ import (
 	"github.com/markbates/goth/providers/microsoftonline"
 )
 
+func (h *Handlers) PasswordGrantExchange(w http.ResponseWriter, r *http.Request) {
+	// TODO
+	// Validate the client id and secret is valid
+	// ...
+
+	r.ParseForm()
+	h.App.InfoLog.Println(r.Form)
+
+	email := r.Form.Get("email")
+	password := r.Form.Get("password")
+
+	// Get the user by email
+	user, err := h.Models.Users.GetByEmail(email)
+	if err != nil {
+		var payload struct {
+			Error   bool   `json:"error"`
+			Message string `json:"message"`
+		}
+
+		payload.Error = true
+		payload.Message = "Invalid user provided 1"
+		h.App.WriteJSON(w, http.StatusBadRequest, payload)
+		return
+	}
+
+	// Validate the users credentials
+	matches, err := user.PasswordMatches(password)
+	if err != nil {
+		var payload struct {
+			Error   bool   `json:"error"`
+			Message string `json:"message"`
+		}
+
+		payload.Error = true
+		payload.Message = "Error validating password 2"
+		h.App.WriteJSON(w, http.StatusBadRequest, payload)
+		return
+	}
+
+	if !matches {
+		var payload struct {
+			Error   bool   `json:"error"`
+			Message string `json:"message"`
+		}
+
+		payload.Error = true
+		payload.Message = "Invalid password"
+		h.App.WriteJSON(w, http.StatusBadRequest, payload)
+		return
+	}
+
+	// Generate a token for the user and persist in the database
+	expiry := 24 * time.Hour
+	token, err := h.Models.Tokens.GenerateToken(user.ID, expiry)
+	if err != nil {
+		var payload struct {
+			Error   bool   `json:"error"`
+			Message string `json:"message"`
+		}
+
+		payload.Error = true
+		payload.Message = "Error creating token."
+		h.App.WriteJSON(w, http.StatusBadRequest, payload)
+		return
+	}
+
+	// Persist the token
+	err = h.Models.Tokens.Insert(*token, *user)
+
+	if err != nil {
+		var payload struct {
+			Error   bool   `json:"error"`
+			Message string `json:"message"`
+		}
+
+		payload.Error = true
+		payload.Message = "Error creating token."
+		h.App.WriteJSON(w, http.StatusBadRequest, payload)
+		return
+	}
+
+	var payload struct {
+		TokenType   string        `json:"token_type"`
+		ExpiresIn   time.Duration `json:"expires_in"`
+		AccessToken string        `json:"access_token"`
+	}
+
+	payload.TokenType = "Bearer"
+	payload.ExpiresIn = expiry
+	payload.AccessToken = token.PlainText
+	h.App.WriteJSON(w, http.StatusOK, payload)
+}
+
 func (h *Handlers) InitSocialAuth() {
 	scope := []string{"user"}
 	gScope := []string{"email", "profile"}

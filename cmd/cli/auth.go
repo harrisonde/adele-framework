@@ -38,6 +38,24 @@ func doAuth() error {
 		exitGracefully(err)
 	}
 
+	appDirs := []string{
+		"data",
+		"handlers",
+		"mail",
+		"middleware",
+		"migrations",
+		"views",
+	}
+
+	// Create Dirs
+	root := ade.RootPath
+	for _, path := range appDirs {
+		err := ade.CreateDirIfNotExist(root + "/" + path)
+		if err != nil {
+			return err
+		}
+	}
+
 	err = copyFileFromTemplate("templates/data/user.go.txt", ade.RootPath+"/data/user.go")
 	if err != nil {
 		exitGracefully(err)

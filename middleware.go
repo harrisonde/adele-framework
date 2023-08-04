@@ -21,11 +21,6 @@ func (a *Adel) NoSurf(next http.Handler) http.Handler {
 	csrfHandler := nosurf.New(next)
 	secure, _ := strconv.ParseBool(a.config.cookie.secure)
 
-	// Pattern of string that does not get a token
-	// https://github.com/justinas/nosurf/blob/master/exempt.go#L55
-	// ExemptPath(), ExemptGlob(), ExemptGlobs() ...
-	csrfHandler.ExemptGlob("/api/*")
-
 	csrfHandler.SetBaseCookie(http.Cookie{
 		HttpOnly: true,
 		Path:     "/",

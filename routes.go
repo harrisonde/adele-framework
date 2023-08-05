@@ -19,7 +19,6 @@ func (a *Adel) routes() http.Handler {
 
 	mux.Use(middleware.Recoverer)
 	mux.Use(a.SessionLoad)
-	mux.Use(a.NoSurf)
 	mux.Use(a.CheckForMaintenanceMode)
 
 	return mux

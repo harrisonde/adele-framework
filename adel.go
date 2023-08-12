@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"net/http"
 	"net/rpc"
 	"os"
 	"strconv"
@@ -14,6 +15,7 @@ import (
 	"github.com/alexedwards/scs/v2"
 	"github.com/dgraph-io/badger/v3"
 	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/httprate"
 	"github.com/gomodule/redigo/redis"
 	"github.com/harrisonde/adel/cache"
 	"github.com/harrisonde/adel/filesystem/miniofilesystem"
@@ -39,6 +41,12 @@ var badgerPool *badger.DB
 var sessionManager *scs.SessionManager
 
 var maintenanceMode bool
+
+type Middleware struct {
+	Rate     int
+	Duration time.Duration
+	Limit    func(requestLimit int, windowLength time.Duration, options ...httprate.Option) func(next http.Handler) http.Handler
+}
 
 type Adel struct {
 	AppName       string

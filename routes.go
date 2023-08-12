@@ -13,6 +13,8 @@ func (a *Adel) routes() http.Handler {
 	mux := chi.NewRouter()
 	mux.Use(middleware.RequestID)
 	mux.Use(middleware.RealIP)
+	mux.Use(a.rateLimiter())
+
 	if a.Debug {
 		mux.Use(logger.NewRequestLogger())
 	}

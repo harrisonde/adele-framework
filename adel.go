@@ -3,10 +3,12 @@ package adel
 import (
 	"fmt"
 	"log"
-	"net"
+
+	//"net"
 	"net/http"
-	"net/rpc"
+	//"net/rpc"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -18,6 +20,8 @@ import (
 	"github.com/go-chi/httprate"
 	"github.com/gomodule/redigo/redis"
 	"github.com/harrisonde/adel/cache"
+
+	//"github.com/harrisonde/adel/cmd"
 	"github.com/harrisonde/adel/filesystem/miniofilesystem"
 	"github.com/harrisonde/adel/filesystem/s3filesystem"
 	"github.com/harrisonde/adel/filesystem/sftpfilesystem"
@@ -27,6 +31,7 @@ import (
 	"github.com/harrisonde/adel/render"
 	"github.com/harrisonde/adel/session"
 	"github.com/joho/godotenv"
+	"github.com/petaki/inertia-go"
 	"github.com/robfig/cron/v3"
 	"github.com/sirupsen/logrus"
 )
@@ -40,7 +45,7 @@ var badgerPool *badger.DB
 
 var sessionManager *scs.SessionManager
 
-var maintenanceMode bool
+//var maintenanceMode bool
 
 type Middleware struct {
 	Rate     int
@@ -49,28 +54,30 @@ type Middleware struct {
 }
 
 type Adel struct {
-	AppName       string
-	Debug         bool
-	Version       string
-	ErrorLog      *log.Logger
-	InfoLog       *log.Logger
-	RootPath      string
-	Routes        *chi.Mux
-	config        config // internal to the app, do not export
-	Render        *render.Render
-	JetViews      *jet.Set
-	Session       *scs.SessionManager
-	DB            Database
-	EncryptionKey string
-	Cache         cache.Cache
-	Scheduler     *cron.Cron
-	Mail          mailer.Mail
-	Server        Server
-	FileSystem    map[string]interface{}
-	S3            s3filesystem.S3
-	SFTP          sftpfilesystem.SFTP
-	WebDAV        webdavfilesystem.WebDAV
-	Minio         miniofilesystem.Minio
+	AppName string
+	Cache   cache.Cache
+	//Commands       Command
+	config         config
+	Debug          bool
+	DB             Database
+	EncryptionKey  string
+	ErrorLog       *log.Logger
+	InfoLog        *log.Logger
+	InertiaManager *inertia.Inertia
+	RootPath       string
+	Routes         *chi.Mux
+	Render         *render.Render
+	JetViews       *jet.Set
+	Session        *scs.SessionManager
+	Scheduler      *cron.Cron
+	Mail           mailer.Mail
+	Server         Server
+	FileSystem     map[string]interface{}
+	S3             s3filesystem.S3
+	SFTP           sftpfilesystem.SFTP
+	WebDAV         webdavfilesystem.WebDAV
+	Minio          miniofilesystem.Minio
+	Version        string
 }
 
 type Server struct {
@@ -255,6 +262,20 @@ func (a *Adel) New(rootPath string) error {
 		a.JetViews = views
 	}
 
+	// Create new Inertia Manger
+	url := os.Getenv("APP_URL")
+	rootTemplate := fmt.Sprintf("%s/views/layouts/base.gohtml", rootPath)
+	version := ""
+	i := inertia.New(url, rootTemplate, version)
+	i.ShareFunc("publicPath", func(path string) (string, error) {
+		publicDir := "/public/dist/"
+		typeDir := strings.Replace(filepath.Ext(path), ".", "", 1)
+		file := filepath.Base(path)
+		return publicDir + typeDir + "/" + file, nil
+	})
+
+	a.InertiaManager = i
+
 	// Create renderer engine
 	a.createRenderer()
 
@@ -321,11 +342,12 @@ func (a *Adel) startLoggers() (*log.Logger, *log.Logger) {
 
 func (a *Adel) createRenderer() {
 	myRenderer := render.Render{
-		Renderer: a.config.renderer,
-		RootPath: a.RootPath,
-		Port:     a.config.port,
-		JetViews: a.JetViews,
-		Session:  a.Session,
+		Renderer:       a.config.renderer,
+		RootPath:       a.RootPath,
+		Port:           a.config.port,
+		JetViews:       a.JetViews,
+		Session:        a.Session,
+		InertiaManager: a.InertiaManager,
 	}
 
 	a.Render = &myRenderer
@@ -475,39 +497,54 @@ func (a *Adel) createFileSystem() map[string]interface{} {
 
 }
 
-type RPCServer struct{}
+// type RPCServer struct {
+// 	App Adel
+// }
 
-func (r *RPCServer) MaintenanceMode(inMaintenanceMode bool, resp *string) error {
-	if inMaintenanceMode {
-		maintenanceMode = true
-		*resp = "Server in maintenance mode"
-	} else {
-		maintenanceMode = false
-		*resp = "Server live!"
-	}
-	return nil
-}
+// func (r *RPCServer) MaintenanceMode(inMaintenanceMode bool, resp *string) error {
+// 	if inMaintenanceMode {
+// 		maintenanceMode = true
+// 		*resp = "Server in maintenance mode"
+// 	} else {
+// 		maintenanceMode = false
+// 		*resp = "Server live!"
+// 	}
+// 	return nil
+// }
 
-func (a *Adel) listenRPC() {
-	if os.Getenv("RPC_PORT") != "" {
-		a.InfoLog.Println("Starting RPC server on port", os.Getenv("RPC_PORT"))
-		err := rpc.Register(new(RPCServer))
-		if err != nil {
-			a.ErrorLog.Println(err)
-			return
-		}
-		listen, err := net.Listen("tcp", "127.0.0.1:"+os.Getenv("RPC_PORT"))
-		if err != nil {
-			a.ErrorLog.Println(err)
-			return
-		}
-		for {
-			rpcConn, err := listen.Accept()
-			if err != nil {
-				continue
-			}
-			go rpc.ServeConn(rpcConn)
+// func (r *RPCServer) Command(command string, resp *string) error {
+// 	fmt.Println(r.App)
+// 	//*resp = r.App.Commands.Execute(command)
+// 	return nil
+// }
 
-		}
-	}
-}
+// func (a *Adel) listenRPC() {
+// 	if os.Getenv("RPC_PORT") != "" {
+// 		a.InfoLog.Println("Starting RPC server on port", os.Getenv("RPC_PORT"))
+
+// 		s := new(RPCServer)
+
+// 		// Provide access to the Adel package
+// 		s.App = *a
+
+// 		err := rpc.Register(s)
+// 		if err != nil {
+// 			a.ErrorLog.Println(err)
+// 			return
+// 		}
+
+// 		listen, err := net.Listen("tcp", "127.0.0.1:"+os.Getenv("RPC_PORT"))
+// 		if err != nil {
+// 			a.ErrorLog.Println(err)
+// 			return
+// 		}
+// 		for {
+// 			rpcConn, err := listen.Accept()
+// 			if err != nil {
+// 				continue
+// 			}
+// 			go rpc.ServeConn(rpcConn)
+
+// 		}
+// 	}
+// }

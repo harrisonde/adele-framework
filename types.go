@@ -30,3 +30,14 @@ type redisConfig struct {
 	password string
 	prefix   string
 }
+
+type SubCommand struct {
+	Name    string
+	Help    string
+	Hanlder interface{}
+}
+
+type Command struct {
+	Name string
+	Help string
+}

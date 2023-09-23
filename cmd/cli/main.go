@@ -9,8 +9,6 @@ import (
 	"github.com/harrisonde/adel"
 )
 
-const version = "1.0.0"
-
 var ade adel.Adel
 var message string
 
@@ -23,8 +21,6 @@ func main() {
 	setup(arg1, arg2)
 
 	switch arg1 {
-	case "help":
-		showHelp()
 
 	case "up":
 		rpcClient(false)
@@ -42,7 +38,7 @@ func main() {
 		doNew(arg2)
 
 	case "version":
-		color.Yellow("Application version: " + version)
+		printVersion()
 
 	case "migrate":
 		if arg2 == "" {
@@ -66,7 +62,7 @@ func main() {
 		}
 
 	default:
-		showHelp()
+		rpcCommand(arg1)
 	}
 
 	exitGracefully(nil, message)

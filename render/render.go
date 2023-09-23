@@ -11,16 +11,18 @@ import (
 	"github.com/CloudyKit/jet/v6"
 	"github.com/alexedwards/scs/v2"
 	"github.com/justinas/nosurf"
+	"github.com/petaki/inertia-go"
 )
 
 type Render struct {
-	Renderer   string
-	RootPath   string
-	Secure     bool
-	Port       string
-	ServerName string
-	JetViews   *jet.Set
-	Session    *scs.SessionManager
+	Renderer       string
+	RootPath       string
+	Secure         bool
+	Port           string
+	ServerName     string
+	JetViews       *jet.Set
+	Session        *scs.SessionManager
+	InertiaManager *inertia.Inertia
 }
 
 type TemplateData struct {
@@ -62,6 +64,27 @@ func (a *Render) Page(w http.ResponseWriter, r *http.Request, view string, varia
 	default:
 	}
 	return errors.New("no rendering engine provided")
+}
+
+// Render with Inertia
+func (a *Render) InertiaPage(w http.ResponseWriter, r *http.Request, template string) error {
+
+	csrfToken := nosurf.Token(r)
+	ctx := a.InertiaManager.WithViewData(r.Context(), "csrf", csrfToken)
+	r = r.WithContext(ctx)
+
+	flash := a.Session.Pop(r.Context(), "flash")
+
+	err := a.InertiaManager.Render(w, r, template, map[string]interface{}{
+		"flash": flash,
+		"csrf":  csrfToken,
+	})
+	if err != nil {
+		log.Printf(fmt.Sprintf("%s", err))
+		return err
+	}
+
+	return nil
 }
 
 // Render with standard go templates

@@ -30,7 +30,6 @@ func (a *Adel) ReadJSON(w http.ResponseWriter, r *http.Request, data interface{}
 	}
 
 	return nil
-
 }
 
 func (a *Adel) WriteJSON(w http.ResponseWriter, status int, data interface{}, headers ...http.Header) error {

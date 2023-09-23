@@ -30,8 +30,8 @@ func (a *Adel) ListenAndServe() error {
 		defer badgerPool.Close()
 	}
 
-	go a.listenRPC()
-	fmt.Printf("\n")
+	// go a.listenRPC()
+	// fmt.Printf("\n")
 	a.InfoLog.Printf("Listening on port %s", os.Getenv("PORT"))
 
 	return srv.ListenAndServe()

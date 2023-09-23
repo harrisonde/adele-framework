@@ -3,7 +3,14 @@ package main
 import (
 	"fmt"
 	"time"
+
+	"github.com/harrisonde/adel"
 )
+
+var MakeSessionCommand = &adel.Command{
+	Name: "make session",
+	Help: "create a table in the database to store sessions",
+}
 
 func doSessionTable() error {
 	dbType := ade.DB.DataType

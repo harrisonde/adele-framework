@@ -7,8 +7,14 @@ import (
 
 	"github.com/fatih/color"
 	"github.com/gertd/go-pluralize"
+	"github.com/harrisonde/adel"
 	"github.com/iancoleman/strcase"
 )
+
+var MakeCommand = &adel.Command{
+	Name: "make",
+	Help: "show all make commands",
+}
 
 func doMake(arg2, arg3, arg4 string) error {
 

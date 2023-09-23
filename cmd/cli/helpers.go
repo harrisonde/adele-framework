@@ -8,8 +8,14 @@ import (
 	"strings"
 
 	"github.com/fatih/color"
+	"github.com/harrisonde/adel/cmd"
 	"github.com/joho/godotenv"
 )
+
+func showHelp() {
+	help := cmd.GetHelp()
+	color.Yellow(help)
+}
 
 func setup(arg1, arg2 string) {
 	if arg1 != "new" && arg1 != "version" && arg1 != "help" {
@@ -60,6 +66,7 @@ func getDSN() string {
 	// mariadb / sql
 	return "mysql://" + ade.BuildDSN()
 }
+
 func checkForDb() {
 	dbType := ade.DB.DataType
 
@@ -70,29 +77,6 @@ func checkForDb() {
 	if !fileExists(ade.RootPath + "/config/database.yml") {
 		exitGracefully(errors.New("config/database.yml does not exist. Did you create one?"))
 	}
-}
-
-func showHelp() {
-	color.Yellow(`Available commands:
-
-	help                           - show help commands
-	up                             - take the server out of maintenance mode
-	down                           - put the server in maintenance mode
-	serve                          - start the application server to handle http requests
-	make                           - show all make commands
-	make auth                      - install authentication
-	make client <name>             - makes a oauth2 password grant client
-	make handler <name>            - create a stub handler in the handlers directory
-	make mail <name>               - create two stub mail templates in the mail directory
-	make migration <name> <format> - create a new migration; format=sql/fizz (default fizz)
-	make model <name>              - create a new model in the data directory
-	make session                   - create a table in the database to store sessions
-	migrate                        - run all migration that have not been run
-	migrate down                   - reverse the most recent migration
-	migrate reset                  - run all down migrations and all up migrations
-	version                        - print application version
-
-	`)
 }
 
 func updateSourceFiles(path string, fi os.FileInfo, err error) error {

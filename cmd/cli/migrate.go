@@ -1,5 +1,12 @@
 package main
 
+import "github.com/harrisonde/adel"
+
+var MakeMigrateCommand = &adel.Command{
+	Name: "migrate",
+	Help: "run all migration that have not been run",
+}
+
 func doMigrate(arg2, arg3 string) error {
 
 	checkForDb()

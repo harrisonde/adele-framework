@@ -2,7 +2,13 @@ package main
 
 import (
 	"github.com/fatih/color"
+	"github.com/harrisonde/adel"
 )
+
+var AuthCommand = &adel.Command{
+	Name: "make auth",
+	Help: "install authentication",
+}
 
 func doAuth() error {
 

@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io/fs"
 	"io/ioutil"
-	"log"
 	"os"
 	"regexp"
 	"sort"
@@ -30,21 +29,27 @@ func GetHelp() string {
 	if err != nil {
 		color.Yellow(fmt.Sprintf("error loading adel help command, %s", err))
 	}
-	for i, command := range adelCommands {
-		commands[i] = command
+
+	p := 1
+	for _, command := range adelCommands {
+		commands[p] = command
+		p++
 	}
 
 	appCommands, err := LoadCommands()
 	if err != nil {
 		color.Yellow(fmt.Sprintf("error loading help, you may have a malformed command in your command dir; %s", err))
 	}
-	for i, command := range appCommands {
-		commands[i+len(commands)] = command
+
+	p++
+
+	for _, c := range appCommands {
+		commands[p] = c
+		p++
 	}
 
 	// Sort
 	keys := make([]int, 0, len(commands))
-
 	for k := range commands {
 		keys = append(keys, k)
 	}
@@ -103,12 +108,12 @@ func LoadCommands() (CommandsHelper, error) {
 
 	path, err := os.Getwd()
 	if err != nil {
-		log.Println(err)
+		color.Red(fmt.Sprintf("%s", err))
 	}
 	path = path + "/cmd"
 	files, err := ioutil.ReadDir(path)
 	if err != nil {
-		log.Fatal(err)
+		color.Red(fmt.Sprintf("%s", err))
 	}
 
 	for index, file := range files {

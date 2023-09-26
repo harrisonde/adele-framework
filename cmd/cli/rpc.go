@@ -42,6 +42,7 @@ func rpcCommand(command string) {
 	port := os.Getenv("RPC_PORT")
 	client, err := rpc.Dial("tcp", "127.0.0.1:"+port)
 	if err != nil {
+		showHelp()
 		exitGracefully(err)
 	}
 

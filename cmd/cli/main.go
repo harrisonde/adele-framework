@@ -88,7 +88,6 @@ func validateInput() (string, string, string, string, error) {
 		}
 
 	} else {
-		color.Red("Error: command required")
 		showHelp()
 		return "", "", "", "", errors.New("command required")
 	}

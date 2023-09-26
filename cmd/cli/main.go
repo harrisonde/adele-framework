@@ -60,7 +60,8 @@ func main() {
 		if err != nil {
 			exitGracefully(err)
 		}
-
+	case "inertia":
+		doInertiaSetup()
 	default:
 		rpcCommand(arg1)
 	}

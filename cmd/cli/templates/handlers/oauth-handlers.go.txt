@@ -8,6 +8,7 @@ import (
 	"myapp/data"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -21,17 +22,55 @@ import (
 )
 
 func (h *Handlers) PasswordGrantExchange(w http.ResponseWriter, r *http.Request) {
-	// TODO
-	// Validate the client id and secret is valid
-	// ...
-
 	r.ParseForm()
-	h.App.InfoLog.Println(r.Form)
 
+	// Validate the client id and secret is valid
+	clientId := r.Form.Get("client_id")
+	clientSecret := r.Form.Get("client_secret")
+
+	cID, err := strconv.Atoi(clientId)
+	if err != nil {
+		var payload struct {
+			Error   bool   `json:"error"`
+			Message string `json:"message"`
+		}
+
+		payload.Error = true
+		payload.Message = "Invalid client provided."
+		h.App.WriteJSON(w, http.StatusBadRequest, payload)
+		return
+	}
+
+	client, err := h.Models.Clients.Get(cID)
+	if err != nil {
+		var payload struct {
+			Error   bool   `json:"error"`
+			Message string `json:"message"`
+		}
+
+		payload.Error = true
+		payload.Message = "Invalid client provided."
+		h.App.WriteJSON(w, http.StatusBadRequest, payload)
+		return
+	}
+
+	isValidClient := client.CheckIsValid(cID, clientSecret)
+	if !isValidClient {
+		var payload struct {
+			Error   bool   `json:"error"`
+			Message string `json:"message"`
+		}
+
+		payload.Error = true
+		payload.Message = "Invalid client provided."
+		h.App.WriteJSON(w, http.StatusBadRequest, payload)
+		return
+	}
+
+	// Validate the user
 	email := r.Form.Get("email")
 	password := r.Form.Get("password")
 
-	// Get the user by email
 	user, err := h.Models.Users.GetByEmail(email)
 	if err != nil {
 		var payload struct {
@@ -40,7 +79,7 @@ func (h *Handlers) PasswordGrantExchange(w http.ResponseWriter, r *http.Request)
 		}
 
 		payload.Error = true
-		payload.Message = "Invalid user provided 1"
+		payload.Message = "Invalid user provided."
 		h.App.WriteJSON(w, http.StatusBadRequest, payload)
 		return
 	}
@@ -54,7 +93,7 @@ func (h *Handlers) PasswordGrantExchange(w http.ResponseWriter, r *http.Request)
 		}
 
 		payload.Error = true
-		payload.Message = "Error validating password 2"
+		payload.Message = "Error validating password."
 		h.App.WriteJSON(w, http.StatusBadRequest, payload)
 		return
 	}

@@ -3,7 +3,9 @@ package handlers
 import (
 	"crypto/sha256"
 	"encoding/base64"
+	"encoding/json"
 	"fmt"
+	"runtime/debug"
 
 	"myapp/data"
 	"net/http"
@@ -26,13 +28,12 @@ func (h *Handlers) PostUserLogin(w http.ResponseWriter, r *http.Request) {
 	err := r.ParseForm()
 	if err != nil {
 		w.Write([]byte(err.Error()))
+		h.App.ErrorStatus(w, http.StatusNotFound)
 		return
 	}
 
 	email := r.Form.Get("email")
 	password := r.Form.Get("password")
-
-	fmt.Fprintf(w, "email: %s password: %s", email, password)
 
 	user, err := h.Models.Users.GetByEmail(email)
 	if err != nil {
@@ -245,4 +246,120 @@ func (h *Handlers) PostResetPassword(w http.ResponseWriter, r *http.Request) {
 
 	h.App.Session.Put(r.Context(), "flash", "Password reset. You may now log into the system.")
 	http.Redirect(w, r, "/users/login", http.StatusSeeOther)
+}
+
+// Inertia
+func (h *Handlers) PostSignUp(w http.ResponseWriter, r *http.Request) {
+
+	// Setup struct and decode
+	var Json struct {
+		Email                string `json:"email"`
+		FirstName            string `json:"firstName"`
+		LastName             string `json:"lastName"`
+		Password             string `json:"password"`
+		PasswordConfirmation string `json:"passwordConfirmation"`
+	}
+
+	err := h.App.ReadJSON(w, r, &Json)
+	if err != nil {
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		return
+	}
+
+	// Validate
+	validator := h.App.Validator(nil)
+
+	validator.HasJSON(&Json, "email", "firstName", "lastName", "password", "passwordConfirmation")
+
+	validator.NotEmpty("firstName", Json.FirstName)
+
+	validator.NotEmpty("lastName", Json.LastName)
+
+	validator.NotEmpty("email", Json.Email)
+
+	validator.NotEmpty("password", Json.Password)
+
+	validator.NotEmpty("passwordConfirmation", Json.PasswordConfirmation)
+
+	validator.IsEmail("email", Json.Email)
+
+	validator.IsEmailInPublicDomain("email", Json.Email)
+
+	if Json.Password != Json.PasswordConfirmation {
+		validator.AddError("password", "The password fields do not match")
+	}
+
+	validator.Password("password", Json.Password)
+
+	if validator.Valid() {
+		validator.PasswordUncompromised("password", Json.Password)
+	}
+
+	if !validator.Valid() {
+		err = h.App.InertiaManager.Render(w, r, "account/register", map[string]interface{}{
+			"errorBag": validator,
+		})
+		if err != nil {
+			trace := fmt.Sprintf("%s\n%s", err.Error(), debug.Stack())
+			h.App.ErrorLog.Println(trace)
+		}
+		return
+	}
+
+	user, _ := h.Models.Users.GetByEmail(Json.Email)
+
+	if user != nil {
+		validator.AddError("email", "Please choose another email address")
+		err = h.App.InertiaManager.Render(w, r, "account/register", map[string]interface{}{
+			"errorBag": validator,
+		})
+		if err != nil {
+			trace := fmt.Sprintf("%s\n%s", err.Error(), debug.Stack())
+			h.App.ErrorLog.Println(trace)
+		}
+		return
+	}
+
+	newUser := data.User{
+		FirstName: Json.FirstName,
+		LastName:  Json.LastName,
+		Email:     Json.Email,
+		Active:    1,
+		Password:  Json.Password,
+	}
+
+	_, err = h.Models.Users.Insert(newUser)
+	if err != nil {
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+	}
+
+	// Create a flash message and redirect to the login
+	type Flash struct {
+		Type    string `json:"type"`
+		Title   string `json:"title"`
+		Message string `json:"message"`
+	}
+
+	var FlashData = &Flash{
+		Type:    "success",
+		Title:   "Account created",
+		Message: "You may now log into the system using your email address and password.",
+	}
+
+	d, e := json.Marshal(FlashData)
+	if e != nil {
+		er := h.App.InertiaManager.Render(w, r, "auth/register", map[string]interface{}{
+			"error":   true,
+			"message": "Encountered unexpected condition and cannot process your request",
+		})
+		if er != nil {
+			trace := fmt.Sprintf("%s\n%s", er.Error(), debug.Stack())
+			h.App.ErrorLog.Println(trace)
+		}
+		return
+	}
+
+	h.App.Session.Put(r.Context(), "flash", string(d))
+
+	h.App.InertiaManager.Location(w, r, "/account")
 }

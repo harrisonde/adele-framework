@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/fatih/color"
 	"github.com/harrisonde/adel"
@@ -14,50 +15,82 @@ var IneritaCommand = &adel.Command{
 
 func doInertiaSetup() {
 	root := ade.RootPath
-
-	err := copyFileFromTemplate("templates/js/package.json", root+"/package.json")
+	fmt.Printf("Adele Inertia")
+	color.Yellow("\n\nStarting installation")
+	color.Green("  Creating package.json...")
+	data, err := templateFS.ReadFile("templates/resources/inertia/js/package.json")
 	if err != nil {
-		color.Yellow(fmt.Sprintf("%s", err))
+		exitGracefully(err)
+	}
+
+	pj := string(data)
+	pj = strings.ReplaceAll(pj, "${APP_NAME}", ade.AppName)
+
+	err = copyDataToFile([]byte(pj), root+"/package.json")
+	if err != nil {
+		exitGracefully(err)
 	}
 
 	dirs := []string{
 		"resources",
 		"resources/css",
 		"resources/js",
+		"resources/js/components",
+		"resources/js/components/forms",
+		"resources/js/pages",
+		"resources/js/pages/account",
 	}
+
+	color.Green("  Creating directories...")
 
 	for _, path := range dirs {
 		err := ade.CreateDirIfNotExist(root + "/" + path)
 		if err != nil {
 			color.Yellow(fmt.Sprintf("%s", err))
 		}
+		color.Green("    " + path)
 	}
 
 	files := []string{
-		"resources/css/tailwind.css",
-		"resources/js/components/forms/LoginForm.vue",
-		"resources/js/components/forms/RegistrationForm.vue",
-		"resources/js/components/Flash.vue",
-		"resources/js/components/Tag.vue",
-		"resources/js/pages/account/index.vue",
-		"resources/js/pages/account/register.vue",
-		"resources/js/pages/404.vue",
-		"resources/js/pages/index.vue",
-		"resources/js/app.js",
+		"css/tailwind.css",
+		"js/components/forms/LoginForm.vue",
+		"js/components/forms/RegistrationForm.vue",
+		"js/components/Flash.vue",
+		"js/components/Tag.vue",
+		"js/pages/account/index.vue",
+		"js/pages/account/register.vue",
+		"js/pages/404.vue",
+		"js/pages/index.vue",
+		"js/app.js",
 	}
 
+	color.Green("  Copying files...")
 	for _, path := range files {
-		err := copyFileFromTemplate("templates/"+path, root+"/"+path)
+
+		d, err := templateFS.ReadFile("templates/resources/inertia/" + path)
 		if err != nil {
-			color.Yellow(fmt.Sprintf("%s", err))
+			exitGracefully(err)
 		}
+
+		f := string(d)
+		err = copyDataToFile([]byte(f), root+"/resources/"+path)
+		if err != nil {
+			exitGracefully(err)
+		}
+
+		color.Green("    " + path)
 	}
 
-	color.Yellow("\n- resources js, css, pages, and, components created")
-	color.Yellow("\nadd interita middleware and routes to web-routes.go:\n\n")
-	color.Yellow("\tr.Use(a.App.InertiaManager.Middleware)\n\tr.Use(a.App.NoSurf)\n\t...")
-	color.Yellow("\nupdate web-routes.go routes with:\n\n")
-	color.Yellow("\tr.Get(\"/{page}\", a.Handlers.Inertia)\n\tr.Get(\"/{page}/{subpage}\", a.Handlers.Inertia)\n\tr.Post(\"/account/register\", a.Handlers.PostSignUp)\n\t...")
-	color.Yellow("\ninstall the inertia dependencies:\n")
-	color.Yellow("\t$ npm install\n\n")
+	color.Yellow("Installation complete, however additional work required:")
+	color.Green("  1. add inertia middleware and routes to your web routes:")
+	fmt.Printf("    web-routes.go")
+	fmt.Printf("\n      middleware:")
+	fmt.Printf("\n        r.Use(a.App.InertiaManager.Middleware)")
+	fmt.Printf("\n        r.Use(a.App.NoSurf)")
+	fmt.Printf("\n      routes:")
+	fmt.Printf("\n        r.Get(\"/{page}\", a.Handlers.Inertia)")
+	fmt.Printf("\n        r.Get(\"/{page}/{subpage}\", a.Handlers.Inertia)")
+	fmt.Printf("\n        r.Post(\"/account/register\", a.Handlers.PostSignUp)")
+	color.Green("\n  2. install the inertia dependencies:")
+	color.Green("    $ npm install")
 }

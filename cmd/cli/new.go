@@ -10,7 +10,13 @@ import (
 
 	"github.com/fatih/color"
 	"github.com/go-git/go-git/v5"
+	"github.com/harrisonde/adel"
 )
+
+var NewCommand = &adel.Command{
+	Name: "new",
+	Help: "create a new application",
+}
 
 var appURL string
 

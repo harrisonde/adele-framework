@@ -59,16 +59,20 @@ func GetHelp() string {
 	})
 
 	// table
-	headerFmt := color.New(color.FgGreen, color.Underline).SprintfFunc()
-	columnFmt := color.New(color.FgYellow).SprintfFunc()
-	tbl := table.New("Command", "Description")
+	headerFmt := color.New(color.FgYellow).SprintfFunc()
+	columnFmt := color.New(color.FgGreen).SprintfFunc()
+	tbl := table.New("Available commands:", "")
 	tbl.WithHeaderFormatter(headerFmt).WithFirstColumnFormatter(columnFmt)
 
 	for _, k := range keys {
-		tbl.AddRow(commands[k].Name, commands[k].Help)
+		tbl.AddRow("  "+commands[k].Name, commands[k].Help)
 	}
 
-	color.Yellow("Available commands:\n\n")
+	fmt.Printf("Adele framework\n")
+
+	color.Yellow("\nUsage:")
+	fmt.Printf("  command [options] [arguments]\n\n")
+	//color.Yellow("\nAvailable commands:")
 	tbl.Print()
 
 	return ""

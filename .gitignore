@@ -10,3 +10,4 @@ dist/*
 vendor/*
 npm-debug.log
 yarn-error.log
+dist/

@@ -10,7 +10,7 @@ import (
 )
 
 func (a *Adel) routes() http.Handler {
-	a.InfoLog.Println("Internal route mounted:")
+
 	mux := chi.NewRouter()
 	mux.Use(middleware.RequestID)
 	mux.Use(middleware.RealIP)
@@ -22,7 +22,7 @@ func (a *Adel) routes() http.Handler {
 
 	mux.Use(middleware.Recoverer)
 	mux.Use(a.SessionLoad)
-	//mux.Use(a.CheckForMaintenanceMode)
+	mux.Use(a.CheckForMaintenanceMode)
 
 	return mux
 }

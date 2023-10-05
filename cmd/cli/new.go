@@ -14,8 +14,13 @@ import (
 )
 
 var NewCommand = &adel.Command{
-	Name: "new",
-	Help: "create a new application",
+	Name:        "new",
+	Help:        "create a new application",
+	Description: "use this command to create a new adele application",
+	Usage:       "new <name>",
+	Options: map[string]string{
+		"-s, -skip": "do not run go mod tidy",
+	},
 }
 
 var appURL string

@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"runtime/debug"
 
-	"myapp/data"
+	"$APPNAME$/data"
 	"net/http"
 
 	"time"
@@ -100,8 +100,6 @@ func (h *Handlers) Logout(w http.ResponseWriter, r *http.Request) {
 		rt := data.RememberToken{}
 		_ = rt.DeleteToken(h.App.Session.GetString(r.Context(), "remember_token"))
 	}
-
-	h.socialLogout(w, r)
 
 	// Delete the cookie
 	cookie := http.Cookie{

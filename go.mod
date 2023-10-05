@@ -14,6 +14,7 @@ require (
 	github.com/aws/aws-sdk-go v1.44.300
 	github.com/bwmarrin/go-alone v0.0.0-20190806015146-742bb55d1631
 	github.com/dgraph-io/badger/v3 v3.2103.5
+	github.com/fatih/camelcase v1.0.0
 	github.com/fatih/color v1.15.0
 	github.com/gabriel-vasile/mimetype v1.4.2
 	github.com/gertd/go-pluralize v0.2.1
@@ -35,6 +36,7 @@ require (
 	github.com/petaki/inertia-go v1.5.0
 	github.com/pkg/sftp v1.13.5
 	github.com/robfig/cron/v3 v3.0.1
+	github.com/rodaine/table v1.1.0
 	github.com/sirupsen/logrus v1.9.2
 	github.com/studio-b12/gowebdav v0.9.0
 	github.com/vanng822/go-premailer v1.20.2
@@ -68,7 +70,6 @@ require (
 	github.com/docker/go-units v0.5.0 // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
 	github.com/emirpasic/gods v1.18.1 // indirect
-	github.com/fatih/camelcase v1.0.0 // indirect
 	github.com/fatih/structs v1.1.0 // indirect
 	github.com/go-git/gcfg v1.5.1-0.20230307220236-3a3c6141e376 // indirect
 	github.com/go-git/go-billy/v5 v5.4.1 // indirect
@@ -131,7 +132,6 @@ require (
 	github.com/opencontainers/runc v1.1.5 // indirect
 	github.com/pjbgf/sha1cd v0.3.0 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
-	github.com/rodaine/table v1.1.0 // indirect
 	github.com/rogpeppe/go-internal v1.9.0 // indirect
 	github.com/rs/xid v1.5.0 // indirect
 	github.com/sendgrid/rest v2.6.3+incompatible // indirect

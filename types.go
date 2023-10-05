@@ -38,6 +38,9 @@ type SubCommand struct {
 }
 
 type Command struct {
-	Name string
-	Help string
+	Name        string
+	Help        string
+	Description string
+	Options     map[string]string
+	Usage       string
 }

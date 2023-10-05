@@ -1,0 +1,146 @@
+package data
+
+import (
+	"crypto/rand"
+	"encoding/base32"
+	"time"
+
+	up "github.com/upper/db/v4"
+)
+
+// User is the type for a User
+type Client struct {
+	ID        int       `db:"id,omitempty" json:"id"`
+	UserID    int       `db:"user_id" json:"user_id"`
+	Secret    string    `db:"secret" json:"secret"`
+	Name      string    `db:"name"`
+	Revoked   int       `db:"revoked"`
+	CreatedAt time.Time `db:"created_at"`
+	UpdatedAt time.Time `db:"updated_at"`
+}
+
+func (c *Client) Table() string {
+	return "oauth_clients"
+}
+
+func (c *Client) CheckIsValid(id int, secret string) bool {
+	if c.ID != id {
+		return false
+	}
+
+	if c.Secret != secret {
+		return false
+	}
+
+	if c.Revoked != 0 {
+		return false
+	}
+
+	return true
+}
+
+func (c *Client) Invalidate(id int) error {
+	var theClient Client
+	collection := upper.Collection(c.Table())
+	res := collection.Find(up.Cond{"id =": id})
+
+	err := res.One(&theClient)
+	if err != nil {
+		return err
+	}
+
+	theClient.Revoked = 1
+
+	err = res.Update(&theClient)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (c *Client) GetBySecret(secret string) (*Client, error) {
+
+	var theClient Client
+	collection := upper.Collection(c.Table())
+	res := collection.Find(up.Cond{"secret =": secret})
+	err := res.One(&theClient)
+	if err != nil {
+		return nil, err
+	}
+
+	return &theClient, nil
+}
+
+func (c *Client) Get(id int) (*Client, error) {
+	var theClient Client
+	collection := upper.Collection(c.Table())
+	res := collection.Find(up.Cond{"id =": id})
+
+	err := res.One(&theClient)
+	if err != nil {
+		return nil, err
+	}
+
+	return &theClient, nil
+}
+
+func (c *Client) Update(theClient Client) error {
+	theClient.UpdatedAt = time.Now()
+	collection := upper.Collection(c.Table())
+	res := collection.Find(theClient.ID)
+
+	err := res.Update(&theClient)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (c *Client) Delete(id int) error {
+	collection := upper.Collection(c.Table())
+	res := collection.Find(id)
+	err := res.Delete()
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (c *Client) Insert(client Client) (int, string, error) {
+
+	newSecret, err := generateSecret()
+	if err != nil {
+		return 0, "", err
+	}
+
+	client.CreatedAt = time.Now()
+	client.UpdatedAt = time.Now()
+	client.Secret = newSecret
+
+	collection := upper.Collection(c.Table())
+	res, err := collection.Insert(client)
+	if err != nil {
+		return 0, "", err
+	}
+
+	id := getInsertID(res.ID())
+
+	return id, newSecret, nil
+}
+
+func generateSecret() (string, error) {
+
+	randomBytes := make([]byte, 16)
+	_, err := rand.Read(randomBytes)
+	if err != nil {
+		return "", err
+	}
+
+	secret := base32.StdEncoding.WithPadding(base32.NoPadding).EncodeToString(randomBytes)
+
+	return secret, nil
+}

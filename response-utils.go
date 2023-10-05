@@ -53,6 +53,13 @@ func (a *Adel) WriteJSON(w http.ResponseWriter, status int, data interface{}, he
 	return nil
 }
 
+func (a *Adel) JsonError(w http.ResponseWriter, err interface{}, status int) {
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("X-Content-Type-Options", "nosniff")
+	w.WriteHeader(status)
+	json.NewEncoder(w).Encode(err)
+}
+
 func (a *Adel) WriteXML(w http.ResponseWriter, status int, data interface{}, headers ...http.Header) error {
 	out, err := xml.MarshalIndent(data, "", "    ")
 	if err != nil {
@@ -74,14 +81,14 @@ func (a *Adel) WriteXML(w http.ResponseWriter, status int, data interface{}, hea
 	return nil
 }
 
-func (a *Adel) DownloadFile(w http.ResponseWriter, r *http.Request, pathToFile, fileName string) error {
+func (a *Adel) DownloadFile(w http.ResponseWriter, r *http.Request, pathToFile, fileName string) (string, error) {
 	fp := path.Join(pathToFile, fileName)
 
 	// clean path up
 	fileToServe := filepath.Clean(fp)
-	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; file=\"%s\"", fileName))
+	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=\"%s\"", fileName))
 	http.ServeFile(w, r, fileToServe)
-	return nil
+	return fileToServe, nil
 }
 
 func (a *Adel) Error404(w http.ResponseWriter, r *http.Request) {

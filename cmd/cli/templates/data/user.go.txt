@@ -19,7 +19,6 @@ type User struct {
 	Password  string    `db:"password"`
 	CreatedAt time.Time `db:"created_at"`
 	UpdatedAt time.Time `db:"updated_at"`
-	Token     Token     `db:"-"`
 }
 
 // Map model to table name
@@ -53,19 +52,6 @@ func (u *User) GetByEmail(email string) (*User, error) {
 		return nil, err
 	}
 
-	// Get tokens
-	var token Token
-	collection = upper.Collection(token.Table())
-	res = collection.Find(up.Cond{"user_id =": theUser.ID, "expiry >": time.Now()}).OrderBy("created_at desc")
-	err = res.One(&token)
-	if err != nil {
-		if err != up.ErrNilRecord && err != up.ErrNoMoreRows {
-			return nil, err
-		}
-	}
-
-	theUser.Token = token
-
 	return &theUser, nil
 }
 
@@ -80,21 +66,7 @@ func (u *User) Get(id int) (*User, error) {
 		return nil, err
 	}
 
-	// Get tokens
-	var token Token
-	collection = upper.Collection(token.Table())
-	res = collection.Find(up.Cond{"user_id =": theUser.ID, "expiry >": time.Now()}).OrderBy("created_at desc")
-	err = res.One(&token)
-	if err != nil {
-		if err != up.ErrNilRecord && err != up.ErrNoMoreRows {
-			return nil, err
-		}
-	}
-
-	theUser.Token = token
-
 	return &theUser, nil
-
 }
 
 // Update a user by User

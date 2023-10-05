@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 
 	"github.com/fatih/color"
@@ -12,12 +13,48 @@ import (
 	"github.com/joho/godotenv"
 )
 
-func showHelp() {
-	help := cmd.GetHelp()
+var optionPattern = "(^--[\\w\\d]{0,}|^-[\\w\\d]{0,})"
+
+func showHelp(arg1 ...string) {
+	var help string
+
+	if len(arg1) > 0 {
+		help = cmd.GetHelp(arg1[0])
+	} else {
+		help = cmd.GetHelp()
+	}
+
 	color.Yellow(help)
 }
 
-func setup(arg1, arg2 string) {
+func loadOptions() {
+	args := os.Args[1:]
+	shift := 0
+	for k, v := range args {
+		isOpt, _ := regexp.MatchString(optionPattern, v)
+		if isOpt {
+			cmdOptions = append(cmdOptions, v)
+			os.Args[k+1] = ""
+			shift++
+		} else if shift > 0 {
+			shiftToPos := k - shift + 1
+			os.Args[shiftToPos] = v
+		}
+	}
+}
+func setup(arg1, arg2, arg3 string) {
+	if HasOption("help") || HasOption("h") {
+		if arg1 == "" {
+			showHelp()
+		} else if arg2 != "" {
+			subCmd := arg1 + " " + arg2
+			showHelp(subCmd)
+		} else {
+			showHelp(arg1)
+		}
+		os.Exit(0)
+	}
+
 	if arg1 != "new" && arg1 != "version" && arg1 != "help" {
 		err := godotenv.Load()
 		if err != nil {
@@ -84,7 +121,6 @@ func updateSourceFiles(path string, fi os.FileInfo, err error) error {
 		return err
 	}
 
-	// is a dir?
 	if fi.IsDir() {
 		return nil
 	}
@@ -113,4 +149,50 @@ func updateSource() {
 	if err != nil {
 		exitGracefully(err)
 	}
+}
+
+func GetOption(option string) (string, error) {
+	var o string
+	for _, v := range cmdOptions {
+		oc := strings.ReplaceAll(v, "-", "")
+
+		// --switch will take no arguments
+		// --switch= option accepts argument
+		// --switch=foo option accepts argument, default foo
+
+		switchAcceptArg := strings.Split(oc, "=")
+		if len(switchAcceptArg) == 1 {
+			if oc == option {
+				o = oc
+			}
+		} else if len(switchAcceptArg) == 2 {
+			o = switchAcceptArg[1]
+		} else {
+			if oc == option {
+				o = oc
+			}
+		}
+	}
+
+	if o == "" {
+		return "", errors.New(fmt.Sprint("%s is not a known argument", option))
+	}
+	return o, nil
+}
+
+func HasOption(option string) bool {
+	for _, v := range cmdOptions {
+		oc := strings.ReplaceAll(v, "-", "")
+		switchAcceptArg := strings.Split(oc, "=")
+		if len(switchAcceptArg) == 1 {
+			if switchAcceptArg[0] == option {
+				return true
+			}
+		} else if len(switchAcceptArg) == 2 {
+			if switchAcceptArg[0] == option {
+				return true
+			}
+		}
+	}
+	return false
 }

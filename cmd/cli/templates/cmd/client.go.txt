@@ -1,0 +1,88 @@
+package cmd
+
+import (
+	"fmt"
+	"foo3/data"
+	"strconv"
+
+	"github.com/fatih/color"
+	"github.com/harrisonde/adel"
+)
+
+var MakeClientCommand = &adel.Command{
+	Name:        "oauth client",
+	Help:        "create a new oauth client",
+	Description: "create a new oauth client for your adel application",
+	Usage:       "make oauth <name>",
+	Options: map[string]string{
+		"-u, --user": "assign the oauth client to a user of your application",
+	},
+}
+
+func (c *Commands) doCreateOauthClient(arg1, arg2, arg3 string) string {
+
+	if arg3 == "" {
+		color.Red("error:\n no name provided for oauth client")
+		return ""
+	}
+
+	dbType := c.App.DB.DataType
+
+	if dbType == "" {
+		color.Red("error:\n no database connection provided in .env")
+	}
+
+	color.Yellow("Starting to create new oauth client for " + c.App.AppName)
+
+	pool := c.App.DB.Pool
+	models := data.New(pool)
+
+	var client = data.Client{
+		Name: arg3,
+	}
+
+	longOption := c.HasOption("user")
+	shortOption := c.HasOption("u")
+
+	if longOption || shortOption {
+
+		color.Green("  option found to assign client to user...")
+
+		id := c.GetOption("user")
+		if id == "" {
+			id = c.GetOption("u")
+		}
+
+		tid, err := strconv.Atoi(id)
+		if err != nil {
+			color.Red("error: %v\n", "cannot convert user id to string")
+			return ""
+		}
+
+		usr, err := models.Users.Get(tid)
+		if err != nil {
+			color.Red(fmt.Sprintf("error:\n user %d not found, user does not exist in your database", tid))
+			return ""
+		}
+
+		color.Green("  user assigned to client...")
+		client.UserID = usr.ID
+	} else {
+		color.Red("error:\n a user id is required, you did not provide one; see --help for options")
+		return ""
+	}
+
+	color.Green("  creating new client...")
+
+	cid, secret, err := models.Clients.Insert(client)
+	if err != nil {
+		color.Red("error: %v\n", err)
+	}
+
+	color.Green("  client stored in database...")
+	color.Green("  client creation complete")
+	color.Yellow("Oauth client")
+	color.White("  name: %s \n  id: %d \n  secret: %s", client.Name, cid, secret)
+
+	return ""
+}

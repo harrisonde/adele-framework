@@ -42,10 +42,7 @@ var myRedisCache *cache.RedisCache
 var myBadgerCache *cache.BadgerCache
 var redisPool *redis.Pool
 var badgerPool *badger.DB
-
 var sessionManager *scs.SessionManager
-
-//var maintenanceMode bool
 
 type Middleware struct {
 	Rate     int
@@ -54,30 +51,30 @@ type Middleware struct {
 }
 
 type Adel struct {
-	AppName string
-	Cache   cache.Cache
-	//Commands       Command
-	config         config
-	Debug          bool
-	DB             Database
-	EncryptionKey  string
-	ErrorLog       *log.Logger
-	InfoLog        *log.Logger
-	InertiaManager *inertia.Inertia
-	RootPath       string
-	Routes         *chi.Mux
-	Render         *render.Render
-	JetViews       *jet.Set
-	Session        *scs.SessionManager
-	Scheduler      *cron.Cron
-	Mail           mailer.Mail
-	Server         Server
-	FileSystem     map[string]interface{}
-	S3             s3filesystem.S3
-	SFTP           sftpfilesystem.SFTP
-	WebDAV         webdavfilesystem.WebDAV
-	Minio          miniofilesystem.Minio
-	Version        string
+	AppName         string
+	Cache           cache.Cache
+	MaintenanceMode bool
+	config          config
+	Debug           bool
+	DB              Database
+	EncryptionKey   string
+	ErrorLog        *log.Logger
+	InfoLog         *log.Logger
+	InertiaManager  *inertia.Inertia
+	RootPath        string
+	Routes          *chi.Mux
+	Render          *render.Render
+	JetViews        *jet.Set
+	Session         *scs.SessionManager
+	Scheduler       *cron.Cron
+	Mail            mailer.Mail
+	Server          Server
+	FileSystem      map[string]interface{}
+	S3              s3filesystem.S3
+	SFTP            sftpfilesystem.SFTP
+	WebDAV          webdavfilesystem.WebDAV
+	Minio           miniofilesystem.Minio
+	Version         string
 }
 
 type Server struct {
@@ -494,57 +491,4 @@ func (a *Adel) createFileSystem() map[string]interface{} {
 	}
 
 	return fileSystem
-
 }
-
-// type RPCServer struct {
-// 	App Adel
-// }
-
-// func (r *RPCServer) MaintenanceMode(inMaintenanceMode bool, resp *string) error {
-// 	if inMaintenanceMode {
-// 		maintenanceMode = true
-// 		*resp = "Server in maintenance mode"
-// 	} else {
-// 		maintenanceMode = false
-// 		*resp = "Server live!"
-// 	}
-// 	return nil
-// }
-
-// func (r *RPCServer) Command(command string, resp *string) error {
-// 	fmt.Println(r.App)
-// 	//*resp = r.App.Commands.Execute(command)
-// 	return nil
-// }
-
-// func (a *Adel) listenRPC() {
-// 	if os.Getenv("RPC_PORT") != "" {
-// 		a.InfoLog.Println("Starting RPC server on port", os.Getenv("RPC_PORT"))
-
-// 		s := new(RPCServer)
-
-// 		// Provide access to the Adel package
-// 		s.App = *a
-
-// 		err := rpc.Register(s)
-// 		if err != nil {
-// 			a.ErrorLog.Println(err)
-// 			return
-// 		}
-
-// 		listen, err := net.Listen("tcp", "127.0.0.1:"+os.Getenv("RPC_PORT"))
-// 		if err != nil {
-// 			a.ErrorLog.Println(err)
-// 			return
-// 		}
-// 		for {
-// 			rpcConn, err := listen.Accept()
-// 			if err != nil {
-// 				continue
-// 			}
-// 			go rpc.ServeConn(rpcConn)
-
-// 		}
-// 	}
-// }

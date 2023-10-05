@@ -1,0 +1,11 @@
+package cmd
+
+var ${CMDNAME}Command = &adel.Command{
+	Name: "${CMDNAME}",
+	Help: "",
+	Description: "",
+	Usage:       "",
+	Options:     map[string]string{},
+}
+
+func (c *Commands) ${CMDNAME}() string {}

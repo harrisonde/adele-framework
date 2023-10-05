@@ -21,7 +21,17 @@ type CommandsHelper map[int]adel.Command
 //go:embed cli/*.go
 var efs embed.FS
 
-func GetHelp() string {
+// use in myapp cmd with exiting a command
+func Exit(message string) string {
+	return message
+}
+
+// use in myapp cmd with exiting a command with error
+func ExitError(err error) {
+	color.Red("error: %v", err)
+}
+
+func GetHelp(args ...string) string {
 
 	var commands = CommandsHelper{}
 
@@ -48,7 +58,58 @@ func GetHelp() string {
 		p++
 	}
 
-	// Sort
+	// Print a single command
+	if len(args) > 0 {
+		printCommandTable(commands, args[0])
+	} else {
+		printHelpTable(commands)
+	}
+	return ""
+}
+
+func printOptionsTable(cmdOptions map[string]string) {
+
+	options := map[string]string{
+		"-h, --help":    "display help for the given command.",
+		"-v, --verbose": "increase the verbosity of messages",
+	}
+
+	headerFmt := color.New(color.FgYellow).SprintfFunc()
+	columnFmt := color.New(color.FgGreen).SprintfFunc()
+	tblOpts := table.New("Options:", "")
+	tblOpts.WithHeaderFormatter(headerFmt).WithFirstColumnFormatter(columnFmt)
+
+	for k, v := range cmdOptions {
+		tblOpts.AddRow(fmt.Sprintf("  %s", k), strings.Trim(v, " "))
+	}
+
+	for k, v := range options {
+		tblOpts.AddRow(fmt.Sprintf("  %s", k), strings.Trim(v, " "))
+	}
+	tblOpts.Print()
+}
+
+func printCommandTable(commands CommandsHelper, arg1 string) {
+	commandFound := false
+
+	for _, c := range commands {
+		if c.Name == arg1 {
+			commandFound = true
+			color.Yellow("Description:")
+			fmt.Printf(" " + c.Description + "\n\n")
+			color.Yellow("Usage:")
+			fmt.Printf(" " + c.Usage + "\n\n")
+			printOptionsTable(c.Options)
+		}
+	}
+
+	if !commandFound {
+		printHelpTable(commands)
+	}
+}
+
+func printHelpTable(commands CommandsHelper) {
+	// Sort and print commands
 	keys := make([]int, 0, len(commands))
 	for k := range commands {
 		keys = append(keys, k)
@@ -61,30 +122,43 @@ func GetHelp() string {
 	// table
 	headerFmt := color.New(color.FgYellow).SprintfFunc()
 	columnFmt := color.New(color.FgGreen).SprintfFunc()
-	tbl := table.New("Available commands:", "")
-	tbl.WithHeaderFormatter(headerFmt).WithFirstColumnFormatter(columnFmt)
 
+	tblCmd := table.New("Available commands:", "")
+	tblCmd.WithHeaderFormatter(headerFmt).WithFirstColumnFormatter(columnFmt)
 	for _, k := range keys {
-		tbl.AddRow("  "+commands[k].Name, commands[k].Help)
+		tblCmd.AddRow("  "+commands[k].Name, commands[k].Help)
 	}
 
-	fmt.Printf("Adele framework\n")
+	tblOpts := table.New("Options:", "")
+	tblOpts.WithHeaderFormatter(headerFmt).WithFirstColumnFormatter(columnFmt)
+	tblOpts.AddRow("  -h, --help", "display help for the given command.")
 
+	fmt.Printf("Adele framework\n")
 	color.Yellow("\nUsage:")
 	fmt.Printf("  command [options] [arguments]\n\n")
-	//color.Yellow("\nAvailable commands:")
-	tbl.Print()
-
-	return ""
+	tblOpts.Print()
+	fmt.Printf("\n")
+	tblCmd.Print()
 }
 
 func LoadDefaultCommands() (CommandsHelper, error) {
-
 	var commandsHelpers = CommandsHelper{}
+	excludeFiles := []string{
+		"cli/copy-files.go",
+		"cli/helpers.go",
+		"cli/main.go",
+		"cli/rpc.go",
+	}
 	pointer := 1
 	fs.WalkDir(efs, ".", func(path string, d fs.DirEntry, err error) error {
 		if d.IsDir() {
 			return nil
+		}
+
+		for _, e := range excludeFiles {
+			if e == path {
+				return nil
+			}
 		}
 
 		body, err := efs.ReadFile(path)
@@ -94,10 +168,11 @@ func LoadDefaultCommands() (CommandsHelper, error) {
 
 		commandBody := string(body)
 
-		cmd, _ := ParseCommand(commandBody)
-
-		if *cmd != (adel.Command{}) {
+		cmd, err := ParseCommand(commandBody)
+		if err == nil {
 			commandsHelpers[pointer] = *cmd
+		} else {
+			color.Red(fmt.Sprintf("%s %s", path, err))
 		}
 
 		pointer++
@@ -107,7 +182,6 @@ func LoadDefaultCommands() (CommandsHelper, error) {
 }
 
 func LoadCommands() (CommandsHelper, error) {
-
 	var commandsHelpers = CommandsHelper{}
 
 	path, err := os.Getwd()
@@ -133,9 +207,10 @@ func LoadCommands() (CommandsHelper, error) {
 		commandBody := string(body)
 
 		cmd, _ := ParseCommand(commandBody)
-
-		if *cmd != (adel.Command{}) {
+		if err == nil {
 			commandsHelpers[index] = *cmd
+		} else {
+			color.Red(fmt.Sprintf("error loading %s, %s", path, err))
 		}
 
 	}
@@ -145,41 +220,64 @@ func LoadCommands() (CommandsHelper, error) {
 func ParseCommand(commandBody string) (*adel.Command, error) {
 
 	cmd := &adel.Command{}
-	r := regexp.MustCompile("&adel.Command{(.*\n.*\n.*\n.*)")
+	r := regexp.MustCompile("&adel.Command{(?s)(.*})")
 
-	bodyMap := r.FindStringSubmatch(commandBody)
-	if len(bodyMap) != 2 {
+	cmdStruct := r.FindStringSubmatch(commandBody)
+
+	if len(cmdStruct) != 2 {
 		return cmd, errors.New("malformed command; please use make command to create a new command template")
 	}
-	st := bodyMap[1]
+	st := cmdStruct[1]
 	st = strings.Replace(st, "\t", "", -1)
 	st = strings.Replace(st, "\n", "", -1)
 
-	var name string
-	var helper string
-
-	res := strings.Split(st, ",")
+	res := strings.Split(st, "\",")
 	for _, c := range res {
 		m := strings.Split(c, ":")
 
 		if len(m) > 1 {
 			key := strings.ToLower(m[0])
-			value := regexp.MustCompile(`[^a-zA-Z0-9 ]+`).ReplaceAllString(m[1], "")
-			value = strings.TrimSpace(value)
+			value := strings.TrimSpace(m[1])
+
 			switch key {
 			case "name":
-				name = value
+				cmd.Name = strings.ReplaceAll(value, `"`, "")
+			case "options":
+				cmd.Options = map[string]string{}
+				r = regexp.MustCompile("Options:(.*?)}")
+				opts := r.FindStringSubmatch(st)
+
+				if len(opts) == 2 {
+					os := strings.Split(opts[1], "\",")
+
+					for _, v := range os {
+						v = strings.Replace(v, "map[string]string{", "", 1)
+						o := strings.Split(v, ":")
+						if len(o) == 2 {
+							flags := strings.Replace(o[0], "map[string]string{", "", 1)
+							flags = strings.ReplaceAll(flags, `"`, "")
+							flags = strings.TrimSpace(flags)
+							description := strings.ReplaceAll(o[1], `"`, "")
+							description = strings.ReplaceAll(description, `"`, "")
+							description = strings.TrimSpace(description)
+							cmd.Options[flags] = description
+						}
+					}
+				}
+
+			case "usage":
+				cmd.Usage = strings.ReplaceAll(value, `"`, "")
+
+			case "description":
+				cmd.Description = strings.ReplaceAll(value, `"`, "")
 			case "help":
-				helper = value
+				cmd.Help = strings.ReplaceAll(value, `"`, "")
 			}
 		}
 	}
 
-	if name != "" {
-		cmd.Name = name
-	}
-	if helper != "" {
-		cmd.Help = helper
+	if cmd == (&adel.Command{}) {
+		return cmd, errors.New("empty command; please use make command to create a new command template")
 	}
 
 	return cmd, nil

@@ -11,6 +11,7 @@ import (
 
 var ade adel.Adel
 var message string
+var cmdOptions []string
 
 func main() {
 	arg1, arg2, arg3, arg4, err := validateInput()
@@ -18,18 +19,13 @@ func main() {
 		exitGracefully(err)
 	}
 
-	setup(arg1, arg2)
+	setup(arg1, arg2, arg3)
 
 	switch arg1 {
 
-	case "up":
-		rpcClient(false)
+	case "server":
 
-	case "down":
-		rpcClient(true)
-
-	case "serve":
-		doStart()
+		handelServer()
 
 	case "new":
 		if arg2 == "" {
@@ -51,9 +47,6 @@ func main() {
 		message = "Migrations complete."
 
 	case "make":
-		if arg2 == "" {
-			exitGracefully(errors.New("make requires a subcommand: (migration|model|handler)"))
-		}
 
 		err = doMake(arg2, arg3, arg4)
 
@@ -63,7 +56,7 @@ func main() {
 	case "inertia":
 		doInertiaSetup()
 	default:
-		rpcCommand(arg1)
+		rpcCommand(arg1, arg2, arg3)
 	}
 
 	exitGracefully(nil, message)
@@ -73,6 +66,9 @@ func validateInput() (string, string, string, string, error) {
 	var arg1, arg2, arg3, arg4 string
 
 	if len(os.Args) > 1 {
+
+		loadOptions()
+
 		arg1 = os.Args[1]
 
 		if len(os.Args) >= 3 {
@@ -91,6 +87,7 @@ func validateInput() (string, string, string, string, error) {
 		showHelp()
 		return "", "", "", "", errors.New("command required")
 	}
+
 	return arg1, arg2, arg3, arg4, nil
 }
 

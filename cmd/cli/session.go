@@ -8,8 +8,13 @@ import (
 )
 
 var MakeSessionCommand = &adel.Command{
-	Name: "make session",
-	Help: "create a table in the database to store sessions",
+	Name:        "make session",
+	Help:        "install sessions",
+	Description: "use the make session command to install session into your application; creates a table in the database to store sessions and runs migrations",
+	Usage:       "make session",
+	Options: map[string]string{
+		"-s, --skip": "skip running up migration",
+	},
 }
 
 func doSessionTable() error {
@@ -36,6 +41,12 @@ func doSessionTable() error {
 	err = copyDataToFile([]byte("drop table sessions"), downFile)
 	if err != nil {
 		exitGracefully(err)
+	}
+
+	longOption, _ := GetOption("skip")
+	shortOption, _ := GetOption("s")
+	if longOption == "skip" || shortOption == "s" {
+		return nil
 	}
 
 	err = doMigrate("up", "")

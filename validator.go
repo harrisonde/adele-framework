@@ -19,7 +19,7 @@ import (
 )
 
 type Validation struct {
-	Data   url.Values
+	Data   url.Values // Is this a struct from inertia js? Can we move it?
 	Errors map[string]string
 }
 

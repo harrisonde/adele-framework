@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
-	"myapp/data"
+	"$APPNAME$/data"
 	"net/http"
 	"os"
 	"strconv"

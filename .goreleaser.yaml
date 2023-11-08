@@ -1,4 +1,4 @@
-# This is an example .goreleaser.yml file with some sensible defaults.
+# This is an .goreleaser.yml file with some sensible defaults for Adele.
 # Make sure to check the documentation at https://goreleaser.com
 
 # The lines below are called `modelines`. See `:help modeline`
@@ -12,24 +12,70 @@ before:
   hooks:
     # You may remove this if you don't use go modules.
     - go mod tidy
+    - go mod download
 
+# Builds can be customized in multiple ways:
+# https://goreleaser.com/customization/builds/
 builds:
   - id: cli
     binary: cli
     env:
       - CGO_ENABLED=0
     goos:
-      - linux
-      - windows
+      # - linux
+      # - windows
       - darwin
-    main: ./cmd/cli/main.go
+    main: ./cmd/cli
 
+# What can be customized in the release section for GitHub:
+# https://goreleaser.com/customization/release/#github
+release:
+  # If set to true, will not auto-publish the release.
+  # Available only for GitHub and Gitea.
+  # draft: true
+
+  # What to do with the release notes in case there the release already exists.
+  #
+  # Valid options are:
+  # - `keep-existing`: keep the existing notes
+  # - `append`: append the current release notes to the existing notes
+  # - `prepend`: prepend the current release notes to the existing notes
+  # - `replace`: replace existing notes
+  #
+  # Default is `keep-existing`.
+  mode: append
+
+  # Set this to true if you want to disable just the artifact upload to the SCM.
+  # If this is true, GoReleaser will still create the release with the
+  # changelog, but won't upload anything to it.
+  #
+  # Since: v1.11
+  # Templates: allowed (since v1.15)
+  # skip_upload: true
+
+  # Header for the release body.
+  #
+  # Templates: allowed
+  header: |
+    ## Adele Framework ({{ .Date }})
+    Welcome to this new framework release!
+
+  # Footer for the release body.
+  #
+  # Templates: allowed
+  footer: |
+    #### Go build something awesome.
+
+    Those were the changes on {{ .Tag }}!
+
+# Customize the archive name, additional files, and format.
+# https://goreleaser.com/customization/archive/?h=archive#archives
 archives:
   - format: tar.gz
     # this name template makes the OS and Arch compatible with the results of `uname`.
     name_template: >-
       {{ .ProjectName }}_
-      {{- title .Os }}_
+      {{- tolower .Os }}_
       {{- if eq .Arch "amd64" }}x86_64
       {{- else if eq .Arch "386" }}i386
       {{- else }}{{ .Arch }}{{ end }}
@@ -38,10 +84,3 @@ archives:
     format_overrides:
       - goos: windows
         format: zip
-
-changelog:
-  sort: asc
-  filters:
-    exclude:
-      - "^docs:"
-      - "^test:"

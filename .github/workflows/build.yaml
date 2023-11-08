@@ -1,28 +1,30 @@
-name: CI
+# .github/workflows/release.yml
+name: goreleaser
+
 on:
   push:
-    branches:
-      - "**"
-  pull_request:
-    branches:
-      - "**"
+    # run only against tags
+    tags:
+      - "*"
+
 jobs:
   release:
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
     steps:
       - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
       - uses: actions/setup-go@v3
         with:
-          go-version: 1.20
-      - name: build cli
-        run: go build -o ./dist/adele ./cmd/cli
-      - uses: go-semantic-release/action@v1
+          go-version: 1.20.4
+      - name: write tag to adele.go
+        run: go run .github/workflows/semantic-release-write-version.go
+      - name: expose adele.go
+        run: cat ./adel.go
+      - uses: goreleaser/goreleaser-action@v5
         with:
-          github-token: ${{ secrets.GITHUB_TOKEN}}
-          changelog-file: "changelog.md"
-          update-file: "packages.json"
-          hooks: goreleaser
+          distribution: goreleaser
+          version: latest
+          args: release --clean --skip validate
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

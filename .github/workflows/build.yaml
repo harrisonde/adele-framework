@@ -16,13 +16,20 @@ jobs:
       - uses: actions/setup-go@v3
         with:
           go-version: 1.20
-      - name: build cli
-        run: go build -o ./dist/adele ./cmd/cli
-      - uses: go-semantic-release/action@v1
+      - uses: goreleaser/goreleaser-action@v5
         with:
-          github-token: ${{ secrets.GITHUB_TOKEN}}
-          changelog-file: "changelog.md"
-          update-file: "packages.json"
-          hooks: goreleaser
+          distribution: goreleaser
+          version: latest
+          args: build --skip=validate --clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: node
+        uses: actions/setup-node@v2
+      - name: dependencies
+        run: |
+          npm install
+          npm ci
+      - name: release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: npm run semantic-release

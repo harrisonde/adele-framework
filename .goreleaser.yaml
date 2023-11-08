@@ -6,23 +6,27 @@
 # yaml-language-server: $schema=https://goreleaser.com/static/schema.json
 # vim: set ts=2 sw=2 tw=0 fo=cnqoj
 
+# goreleaser build --skip=validate --clean
+# goreleaser release --skip=validate,publish --clean
+
 version: 1
 
 before:
   hooks:
     # You may remove this if you don't use go modules.
     - go mod tidy
+    - go mod download
 
 builds:
   - id: cli
-    binary: cli
+    binary: ./dist/cli
     env:
       - CGO_ENABLED=0
     goos:
       - linux
       - windows
       - darwin
-    main: ./cmd/cli/main.go
+    main: ./cmd/cli
 
 archives:
   - format: tar.gz

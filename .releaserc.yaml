@@ -1,0 +1,24 @@
+branches:
+  - main
+# ci: true
+debug: true
+plugins:
+  - "@semantic-release/commit-analyzer"
+  - "@semantic-release/release-notes-generator"
+  - "@semantic-release/changelog"
+  - "@semantic-release/github"
+  - "@semantic-release/git"
+
+github:
+  assets:
+    - path: dist/cli_*.tar.gz
+    - path: dist/cli_*.zip
+
+git:
+  assets:
+    - CHANGELOG.md
+  message: |-
+    chore(release): ${nextRelease.version} [skip ci]
+    ${nextRelease.notes}
+
+#export GITHUB_TOKEN=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

@@ -17,15 +17,35 @@ before:
 # Builds can be customized in multiple ways:
 # https://goreleaser.com/customization/builds/
 builds:
+  - id: cli-lin-win
+    binary: cli
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      # - windows
+
+    main: ./cmd/cli
+
   - id: cli
     binary: cli
     env:
       - CGO_ENABLED=0
     goos:
-      # - linux
-      # - windows
       - darwin
     main: ./cmd/cli
+    hooks:
+      # Executables can be signed after build using post hook
+      # https://goreleaser.com/customization/sign/?h=#signing-executables
+      post:
+        # The binary is signed and notarized when running a production release, but for snapshot builds notarization is
+        # skipped and only ad-hoc signing is performed (not cryptographic material is needed).
+        #
+        # note: environment variables required for signing and notarization (set in CI) but are not needed for snapshot builds
+        #    QUILL_SIGN_P12, QUILL_SIGN_PASSWORD, QUILL_NOTARY_KEY, QUILL_NOTARY_KEY_ID, QUILL_NOTARY_ISSUER
+        - cmd: .tmp/quill/quill sign-and-notarize "{{ .Path }}" --dry-run={{ .IsSnapshot }} --ad-hoc={{ .IsSnapshot }} -vv
+          env:
+            - QUILL_LOG_FILE=/tmp/quill-{{ .Target }}.log
 
 # What can be customized in the release section for GitHub:
 # https://goreleaser.com/customization/release/#github

@@ -2,10 +2,10 @@ package main
 
 import (
 	"github.com/fatih/color"
-	"github.com/harrisonde/adel"
+	"github.com/harrisonde/adele"
 )
 
-var VersionCommand = &adel.Command{
+var VersionCommand = &adele.Command{
 	Name: "version",
 	Help: "print application version",
 }

@@ -1,8 +1,8 @@
 package main
 
-import "github.com/harrisonde/adel"
+import "github.com/harrisonde/adele"
 
-var MakeMigrateResetCommand = &adel.Command{
+var MakeMigrateResetCommand = &adele.Command{
 	Name:        "migrate reset",
 	Help:        "reset and re-run all migrations",
 	Description: "use the migrate reset command to run all the down migrations and all the up migrations.",

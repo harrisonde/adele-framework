@@ -1,4 +1,4 @@
-package adel
+package adele
 
 import (
 	"fmt"
@@ -13,7 +13,7 @@ import (
 	"github.com/justinas/nosurf"
 )
 
-func (a *Adel) CheckForMaintenanceMode(next http.Handler) http.Handler {
+func (a *Adele) CheckForMaintenanceMode(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if a.MaintenanceMode {
 			isAccessible := false
@@ -37,12 +37,12 @@ func (a *Adel) CheckForMaintenanceMode(next http.Handler) http.Handler {
 }
 
 // Load and save session on each request
-func (a *Adel) SessionLoad(next http.Handler) http.Handler {
+func (a *Adele) SessionLoad(next http.Handler) http.Handler {
 	return a.Session.LoadAndSave(next)
 }
 
 // Setup and return CSRF token setup
-func (a *Adel) NoSurf(next http.Handler) http.Handler {
+func (a *Adele) NoSurf(next http.Handler) http.Handler {
 	csrfHandler := nosurf.New(next)
 	secure, _ := strconv.ParseBool(a.config.cookie.secure)
 
@@ -57,7 +57,7 @@ func (a *Adel) NoSurf(next http.Handler) http.Handler {
 	return csrfHandler
 }
 
-func (a *Adel) rateLimiter() func(next http.Handler) http.Handler {
+func (a *Adele) rateLimiter() func(next http.Handler) http.Handler {
 	var rate int
 	var duration int
 

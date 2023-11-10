@@ -5,11 +5,11 @@ import (
 	"strings"
 
 	"github.com/gertd/go-pluralize"
-	"github.com/harrisonde/adel"
+	"github.com/harrisonde/adele"
 	"github.com/iancoleman/strcase"
 )
 
-var MakeModelCommand = &adel.Command{
+var MakeModelCommand = &adele.Command{
 	Name:        "make model",
 	Help:        "create a new model",
 	Description: "use the make model command to create a new model in the models directory",

@@ -13,8 +13,8 @@ import (
 	"time"
 
 	"github.com/CloudyKit/jet/v6"
-	"github.com/harrisonde/adel/mailer"
-	"github.com/harrisonde/adel/urlsigner"
+	"github.com/harrisonde/adele/mailer"
+	"github.com/harrisonde/adele/urlsigner"
 )
 
 func (h *Handlers) Login(w http.ResponseWriter, r *http.Request) {

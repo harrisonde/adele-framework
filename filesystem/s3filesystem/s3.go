@@ -3,17 +3,18 @@ package s3filesystem
 import (
 	"bytes"
 	"fmt"
+	"log"
+	"net/http"
+	"os"
+	"path"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
-	"github.com/harrisonde/adel/filesystem"
-	"log"
-	"net/http"
-	"os"
-	"path"
+	"github.com/harrisonde/adele/filesystem"
 )
 
 type S3 struct {
@@ -66,7 +67,7 @@ func (s *S3) Put(fileName, folder string, acl ...string) error {
 		Body:        fileBytes,
 		ContentType: aws.String(fileType),
 		Metadata: map[string]*string{
-			// TODO: Not necessary but we might want to adjust or expose to Adel
+			// TODO: Not necessary but we might want to adjust or expose to adele
 			"Key": aws.String("MetadataValue"),
 		},
 	}
@@ -79,7 +80,7 @@ func (s *S3) Put(fileName, folder string, acl ...string) error {
 			ACL:         aws.String(fmt.Sprintf("%s", acl[0])),
 			ContentType: aws.String(fileType),
 			Metadata: map[string]*string{
-				// TODO: Not necessary but we might want to adjust or expose to Adel
+				// TODO: Not necessary but we might want to adjust or expose to adele
 				"Key": aws.String("MetadataValue"),
 			},
 		}

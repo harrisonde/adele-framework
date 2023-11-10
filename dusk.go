@@ -1,14 +1,15 @@
-package adel
+package adele
 
 import (
 	"fmt"
+	"time"
+
 	"github.com/go-rod/rod"
 	"github.com/go-rod/rod/lib/proto"
 	"github.com/go-rod/rod/lib/utils"
-	"time"
 )
 
-func (a *Adel) TakeScreenShot(pageURL, testName string, w, h float64) {
+func (a *Adele) TakeScreenShot(pageURL, testName string, w, h float64) {
 	page := rod.New().MustConnect().MustIgnoreCertErrors(true).MustPage(pageURL).MustWaitLoad()
 
 	img, _ := page.Screenshot(true, &proto.PageCaptureScreenshot{
@@ -26,10 +27,10 @@ func (a *Adel) TakeScreenShot(pageURL, testName string, w, h float64) {
 	_ = utils.OutputFile(fmt.Sprintf("%s/screenshots/%s-%s.png", a.RootPath, testName, fileName), img)
 }
 
-func (a *Adel) FetchPage(pageURL string) *rod.Page {
+func (a *Adele) FetchPage(pageURL string) *rod.Page {
 	return rod.New().MustConnect().MustIgnoreCertErrors(true).MustPage(pageURL).MustWaitLoad()
 }
 
-func (a *Adel) SelectElementByID(page *rod.Page, id string) *rod.Element {
+func (a *Adele) SelectElementByID(page *rod.Page, id string) *rod.Element {
 	return page.MustElementByJS(fmt.Sprintf("() => document.getElementById('%s')", id), nil)
 }

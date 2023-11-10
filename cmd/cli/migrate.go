@@ -1,8 +1,8 @@
 package main
 
-import "github.com/harrisonde/adel"
+import "github.com/harrisonde/adele"
 
-var MakeMigrateCommand = &adel.Command{
+var MakeMigrateCommand = &adele.Command{
 	Name:        "migrate",
 	Help:        "run all migrations",
 	Description: "use the migrate command to run all migrations that have not be previously executed",

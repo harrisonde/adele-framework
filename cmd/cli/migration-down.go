@@ -1,8 +1,8 @@
 package main
 
-import "github.com/harrisonde/adel"
+import "github.com/harrisonde/adele"
 
-var MakeMigrateDownCommand = &adel.Command{
+var MakeMigrateDownCommand = &adele.Command{
 	Name:        "migrate down",
 	Help:        "reverse the last migration",
 	Description: "use the migrate down command to reverse the most recent migration",

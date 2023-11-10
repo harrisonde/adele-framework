@@ -5,11 +5,11 @@ import (
 	"io/ioutil"
 	"strings"
 
-	"github.com/harrisonde/adel"
+	"github.com/harrisonde/adele"
 	"github.com/iancoleman/strcase"
 )
 
-var MakeHandlerCommand = &adel.Command{
+var MakeHandlerCommand = &adele.Command{
 	Name:        "make handler",
 	Help:        "create a new handler",
 	Description: "use the make handler command to create a new handler in the handlers directory",

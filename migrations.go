@@ -1,4 +1,4 @@
-package adel
+package adele
 
 import (
 	"log"
@@ -14,7 +14,7 @@ import (
 	_ "github.com/golang-migrate/migrate/v4/source/file"
 )
 
-func (a *Adel) PopConnect() (*pop.Connection, error) {
+func (a *Adele) PopConnect() (*pop.Connection, error) {
 	tx, err := pop.Connect("development") // TODO: Do we want to default to development? Seems to me that a env pivot is helpful.
 	if err != nil {
 		return nil, err
@@ -22,7 +22,7 @@ func (a *Adel) PopConnect() (*pop.Connection, error) {
 	return tx, nil
 }
 
-func (a *Adel) CreatePopMigration(up, down []byte, migrationName, migrationType string) error {
+func (a *Adele) CreatePopMigration(up, down []byte, migrationName, migrationType string) error {
 	var migrationPath = a.RootPath + "/migrations"
 	err := pop.MigrationCreate(migrationPath, migrationName, migrationType, up, down)
 	if err != nil {
@@ -31,7 +31,7 @@ func (a *Adel) CreatePopMigration(up, down []byte, migrationName, migrationType 
 	return nil
 }
 
-func (a *Adel) RunPopMigrations(tx *pop.Connection) error {
+func (a *Adele) RunPopMigrations(tx *pop.Connection) error {
 	var migrationPath = a.RootPath + "/migrations"
 
 	fm, err := pop.NewFileMigrator(migrationPath, tx)
@@ -47,7 +47,7 @@ func (a *Adel) RunPopMigrations(tx *pop.Connection) error {
 	return nil
 }
 
-func (a *Adel) PopMigrateDown(tx *pop.Connection, steps ...int) error {
+func (a *Adele) PopMigrateDown(tx *pop.Connection, steps ...int) error {
 	var migrationPath = a.RootPath + "/migrations"
 
 	step := 1
@@ -67,7 +67,7 @@ func (a *Adel) PopMigrateDown(tx *pop.Connection, steps ...int) error {
 	return nil
 }
 
-func (a *Adel) PopMigrateReset(tx *pop.Connection) error {
+func (a *Adele) PopMigrateReset(tx *pop.Connection) error {
 	var migrationPath = a.RootPath + "/migrations"
 	fm, err := pop.NewFileMigrator(migrationPath, tx)
 	if err != nil {
@@ -80,7 +80,7 @@ func (a *Adel) PopMigrateReset(tx *pop.Connection) error {
 	return nil
 }
 
-func (c *Adel) MigrateUp(dsn string) error {
+func (c *Adele) MigrateUp(dsn string) error {
 	m, err := migrate.New("file://"+c.RootPath+"/migrations", dsn)
 	if err != nil {
 		return err
@@ -94,7 +94,7 @@ func (c *Adel) MigrateUp(dsn string) error {
 	return nil
 }
 
-func (c *Adel) MigrateDownAll(dsn string) error {
+func (c *Adele) MigrateDownAll(dsn string) error {
 	m, err := migrate.New("file://"+c.RootPath+"/migrations", dsn)
 	if err != nil {
 		return err
@@ -107,7 +107,7 @@ func (c *Adel) MigrateDownAll(dsn string) error {
 	return nil
 }
 
-func (c *Adel) Steps(n int, dsn string) error {
+func (c *Adele) Steps(n int, dsn string) error {
 	m, err := migrate.New("file://"+c.RootPath+"/migrations", dsn)
 	if err != nil {
 		return err
@@ -120,7 +120,7 @@ func (c *Adel) Steps(n int, dsn string) error {
 	return nil
 }
 
-func (c *Adel) MigrateForce(dsn string) error {
+func (c *Adele) MigrateForce(dsn string) error {
 	m, err := migrate.New("file://"+c.RootPath+"/migrations", dsn)
 	if err != nil {
 		return err

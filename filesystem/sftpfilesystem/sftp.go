@@ -2,14 +2,15 @@ package sftpfilesystem
 
 import (
 	"fmt"
-	"github.com/harrisonde/adel/filesystem"
-	"github.com/pkg/sftp"
-	"golang.org/x/crypto/ssh"
 	"io"
 	"log"
 	"os"
 	"path"
 	"strings"
+
+	"github.com/harrisonde/adele/filesystem"
+	"github.com/pkg/sftp"
+	"golang.org/x/crypto/ssh"
 )
 
 type SFTP struct {

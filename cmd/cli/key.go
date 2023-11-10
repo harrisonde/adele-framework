@@ -6,10 +6,10 @@ import (
 	"regexp"
 
 	"github.com/fatih/color"
-	"github.com/harrisonde/adel"
+	"github.com/harrisonde/adele"
 )
 
-var MakeKeyCommand = &adel.Command{
+var MakeKeyCommand = &adele.Command{
 	Name:        "make key",
 	Help:        "create new application key",
 	Description: "use the make key command to create a new application key for your adel application",

@@ -1,11 +1,11 @@
 package main
 
 import (
-	"github.com/harrisonde/adel"
-	"github.com/harrisonde/adel/cmd"
+	"github.com/harrisonde/adele"
+	"github.com/harrisonde/adele/cmd"
 )
 
-var MakeCommand = &adel.Command{
+var MakeCommand = &adele.Command{
 	Name:        "make",
 	Help:        "show all make commands",
 	Description: "use the make command to create a new resources e.g., migrations, models, or mail",

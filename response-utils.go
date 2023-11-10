@@ -1,4 +1,4 @@
-package adel
+package adele
 
 import (
 	"encoding/json"
@@ -11,7 +11,7 @@ import (
 	"path/filepath"
 )
 
-func (a *Adel) ReadJSON(w http.ResponseWriter, r *http.Request, data interface{}) error {
+func (a *Adele) ReadJSON(w http.ResponseWriter, r *http.Request, data interface{}) error {
 	// TO DO:
 	// Move this to the .env and adel app config
 	// Limits the max size of the body to be read.
@@ -32,7 +32,7 @@ func (a *Adel) ReadJSON(w http.ResponseWriter, r *http.Request, data interface{}
 	return nil
 }
 
-func (a *Adel) WriteJSON(w http.ResponseWriter, status int, data interface{}, headers ...http.Header) error {
+func (a *Adele) WriteJSON(w http.ResponseWriter, status int, data interface{}, headers ...http.Header) error {
 	out, err := json.MarshalIndent(data, "", "\t")
 	if err != nil {
 		return err
@@ -53,14 +53,14 @@ func (a *Adel) WriteJSON(w http.ResponseWriter, status int, data interface{}, he
 	return nil
 }
 
-func (a *Adel) JsonError(w http.ResponseWriter, err interface{}, status int) {
+func (a *Adele) JsonError(w http.ResponseWriter, err interface{}, status int) {
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("X-Content-Type-Options", "nosniff")
 	w.WriteHeader(status)
 	json.NewEncoder(w).Encode(err)
 }
 
-func (a *Adel) WriteXML(w http.ResponseWriter, status int, data interface{}, headers ...http.Header) error {
+func (a *Adele) WriteXML(w http.ResponseWriter, status int, data interface{}, headers ...http.Header) error {
 	out, err := xml.MarshalIndent(data, "", "    ")
 	if err != nil {
 		return err
@@ -81,7 +81,7 @@ func (a *Adel) WriteXML(w http.ResponseWriter, status int, data interface{}, hea
 	return nil
 }
 
-func (a *Adel) DownloadFile(w http.ResponseWriter, r *http.Request, pathToFile, fileName string) (string, error) {
+func (a *Adele) DownloadFile(w http.ResponseWriter, r *http.Request, pathToFile, fileName string) (string, error) {
 	fp := path.Join(pathToFile, fileName)
 
 	// clean path up
@@ -91,22 +91,22 @@ func (a *Adel) DownloadFile(w http.ResponseWriter, r *http.Request, pathToFile, 
 	return fileToServe, nil
 }
 
-func (a *Adel) Error404(w http.ResponseWriter, r *http.Request) {
+func (a *Adele) Error404(w http.ResponseWriter, r *http.Request) {
 	a.ErrorStatus(w, http.StatusNotFound)
 }
 
-func (a *Adel) Error500(w http.ResponseWriter, r *http.Request) {
+func (a *Adele) Error500(w http.ResponseWriter, r *http.Request) {
 	a.ErrorStatus(w, http.StatusInternalServerError)
 }
 
-func (a *Adel) ErrorUnauthorized(w http.ResponseWriter, r *http.Request) {
+func (a *Adele) ErrorUnauthorized(w http.ResponseWriter, r *http.Request) {
 	a.ErrorStatus(w, http.StatusUnauthorized)
 }
 
-func (a *Adel) ErrorForbidden(w http.ResponseWriter, r *http.Request) {
+func (a *Adele) ErrorForbidden(w http.ResponseWriter, r *http.Request) {
 	a.ErrorStatus(w, http.StatusForbidden)
 }
 
-func (a *Adel) ErrorStatus(w http.ResponseWriter, status int) {
+func (a *Adele) ErrorStatus(w http.ResponseWriter, status int) {
 	http.Error(w, http.StatusText(status), status)
 }

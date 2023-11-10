@@ -1,4 +1,4 @@
-module github.com/harrisonde/adel
+module github.com/harrisonde/adele
 
 go 1.20
 

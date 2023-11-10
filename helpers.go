@@ -1,4 +1,4 @@
-package adel
+package adele
 
 import (
 	"crypto/aes"
@@ -14,7 +14,7 @@ const (
 )
 
 // Generate a random string length n from values in the randomString const
-func (a *Adel) RandomString(n int) string {
+func (a *Adele) RandomString(n int) string {
 	s, r := make([]rune, n), []rune(randomString)
 
 	for i := range s {
@@ -25,7 +25,7 @@ func (a *Adel) RandomString(n int) string {
 	return string(s)
 }
 
-func (a *Adel) CreateDirIfNotExist(path string) error {
+func (a *Adele) CreateDirIfNotExist(path string) error {
 	const mode = 0755
 	if _, err := os.Stat(path); os.IsNotExist(err) {
 		err := os.Mkdir(path, mode)
@@ -36,7 +36,7 @@ func (a *Adel) CreateDirIfNotExist(path string) error {
 	return nil
 }
 
-func (a *Adel) CreateFileIfNotExist(path string) error {
+func (a *Adele) CreateFileIfNotExist(path string) error {
 	var _, err = os.Stat(path)
 	if os.IsNotExist(err) {
 		var file, err = os.Create(path)

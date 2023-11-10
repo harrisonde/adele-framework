@@ -1,4 +1,4 @@
-package adel
+package adele
 
 import (
 	"fmt"
@@ -19,24 +19,23 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/httprate"
 	"github.com/gomodule/redigo/redis"
-	"github.com/harrisonde/adel/cache"
+	"github.com/harrisonde/adele/cache"
 
-	//"github.com/harrisonde/adel/cmd"
-	"github.com/harrisonde/adel/filesystem/miniofilesystem"
-	"github.com/harrisonde/adel/filesystem/s3filesystem"
-	"github.com/harrisonde/adel/filesystem/sftpfilesystem"
-	"github.com/harrisonde/adel/filesystem/webdavfilesystem"
-	"github.com/harrisonde/adel/logger"
-	"github.com/harrisonde/adel/mailer"
-	"github.com/harrisonde/adel/render"
-	"github.com/harrisonde/adel/session"
+	"github.com/harrisonde/adele/filesystem/miniofilesystem"
+	"github.com/harrisonde/adele/filesystem/s3filesystem"
+	"github.com/harrisonde/adele/filesystem/sftpfilesystem"
+	"github.com/harrisonde/adele/filesystem/webdavfilesystem"
+	"github.com/harrisonde/adele/logger"
+	"github.com/harrisonde/adele/mailer"
+	"github.com/harrisonde/adele/render"
+	"github.com/harrisonde/adele/session"
 	"github.com/joho/godotenv"
 	"github.com/petaki/inertia-go"
 	"github.com/robfig/cron/v3"
 	"github.com/sirupsen/logrus"
 )
 
-const version = "1.0.0"
+const version = "${{ADELE_RELEASE_VERSION}}"
 
 var myRedisCache *cache.RedisCache
 var myBadgerCache *cache.BadgerCache
@@ -50,7 +49,7 @@ type Middleware struct {
 	Limit    func(requestLimit int, windowLength time.Duration, options ...httprate.Option) func(next http.Handler) http.Handler
 }
 
-type Adel struct {
+type Adele struct {
 	AppName         string
 	Cache           cache.Cache
 	MaintenanceMode bool
@@ -100,7 +99,7 @@ type uploadConfig struct {
 }
 
 // Called by project consuming our package
-func (a *Adel) New(rootPath string) error {
+func (a *Adele) New(rootPath string) error {
 
 	// Hold our root path and folder names
 	pathConfig := initPaths{
@@ -125,12 +124,12 @@ func (a *Adel) New(rootPath string) error {
 		return err
 	}
 
-	// Populate Adel values
+	// Populate Adele values
 	infoLog, errorLog := a.startLoggers()
 	a.InfoLog = infoLog
 	a.ErrorLog = errorLog
 	a.Debug, _ = strconv.ParseBool(os.Getenv("DEBUG"))
-	a.Version = a.Version
+	a.Version = version
 	a.RootPath = rootPath
 	a.Mail = a.createMailer()
 	a.Routes = a.routes().(*chi.Mux) // Cast
@@ -286,7 +285,7 @@ func (a *Adel) New(rootPath string) error {
 }
 
 // Create directories, if they do not already exist.
-func (a *Adel) Init(p initPaths) error {
+func (a *Adele) Init(p initPaths) error {
 	root := p.rootPath
 	for _, path := range p.folderNames {
 		err := a.CreateDirIfNotExist(root + "/" + path)
@@ -298,7 +297,7 @@ func (a *Adel) Init(p initPaths) error {
 }
 
 // Create env, if it does not already exist.
-func (a *Adel) checkDotEnv(path string) error {
+func (a *Adele) checkDotEnv(path string) error {
 	err := a.CreateFileIfNotExist(fmt.Sprintf("%s", path))
 	if err != nil {
 		return err
@@ -307,7 +306,7 @@ func (a *Adel) checkDotEnv(path string) error {
 }
 
 // Create application logs
-func (a *Adel) startLoggers() (*log.Logger, *log.Logger) {
+func (a *Adele) startLoggers() (*log.Logger, *log.Logger) {
 	var infoLog *log.Logger
 	var errorLog *log.Logger
 	var format *logrus.Entry
@@ -337,7 +336,7 @@ func (a *Adel) startLoggers() (*log.Logger, *log.Logger) {
 
 }
 
-func (a *Adel) createRenderer() {
+func (a *Adele) createRenderer() {
 	myRenderer := render.Render{
 		Renderer:       a.config.renderer,
 		RootPath:       a.RootPath,
@@ -350,7 +349,7 @@ func (a *Adel) createRenderer() {
 	a.Render = &myRenderer
 }
 
-func (a *Adel) createMailer() mailer.Mail {
+func (a *Adele) createMailer() mailer.Mail {
 	port, _ := strconv.Atoi(os.Getenv("SMTP_PORT"))
 	m := mailer.Mail{
 		Domain:      os.Getenv("MAIL_DOMAIN"),
@@ -371,7 +370,7 @@ func (a *Adel) createMailer() mailer.Mail {
 	return m
 }
 
-func (a *Adel) BuildDSN() string {
+func (a *Adele) BuildDSN() string {
 	var dsn string
 
 	switch os.Getenv("DATABASE_TYPE") {
@@ -393,7 +392,7 @@ func (a *Adel) BuildDSN() string {
 }
 
 // Redis
-func (a *Adel) createRedisPool() *redis.Pool {
+func (a *Adele) createRedisPool() *redis.Pool {
 	return &redis.Pool{
 		MaxIdle:     50,
 		MaxActive:   10000,
@@ -411,7 +410,7 @@ func (a *Adel) createRedisPool() *redis.Pool {
 }
 
 // Create client redis cache
-func (a *Adel) createClientRedisCache() *cache.RedisCache {
+func (a *Adele) createClientRedisCache() *cache.RedisCache {
 	cacheClient := cache.RedisCache{
 		Conn:   a.createRedisPool(),
 		Prefix: a.config.redis.prefix,
@@ -420,7 +419,7 @@ func (a *Adel) createClientRedisCache() *cache.RedisCache {
 }
 
 // Badger
-func (a *Adel) createBadgerPool() *badger.DB {
+func (a *Adele) createBadgerPool() *badger.DB {
 	db, err := badger.Open(badger.DefaultOptions(a.RootPath + "/tmp/badger").WithLogger(nil))
 	if err != nil {
 		return nil
@@ -429,7 +428,7 @@ func (a *Adel) createBadgerPool() *badger.DB {
 }
 
 // Create client for badger cache
-func (a *Adel) createClientBadgerCache() *cache.BadgerCache {
+func (a *Adele) createClientBadgerCache() *cache.BadgerCache {
 	cacheClient := cache.BadgerCache{
 		Conn: a.createBadgerPool(),
 	}
@@ -437,7 +436,7 @@ func (a *Adel) createClientBadgerCache() *cache.BadgerCache {
 }
 
 // Create the filesystem for the application
-func (a *Adel) createFileSystem() map[string]interface{} {
+func (a *Adele) createFileSystem() map[string]interface{} {
 	fileSystem := make(map[string]interface{})
 
 	if os.Getenv("S3_KEY") != "" {

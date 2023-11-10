@@ -1,4 +1,4 @@
-package adel
+package adele
 
 import (
 	"fmt"
@@ -8,7 +8,7 @@ import (
 )
 
 // Start the web server
-func (a *Adel) ListenAndServe() error {
+func (a *Adele) ListenAndServe() error {
 	srv := &http.Server{
 		Addr:         fmt.Sprintf(":%s", os.Getenv("PORT")),
 		ErrorLog:     a.ErrorLog,

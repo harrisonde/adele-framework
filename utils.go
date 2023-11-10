@@ -1,4 +1,4 @@
-package adel
+package adele
 
 import (
 	"fmt"
@@ -7,7 +7,7 @@ import (
 	"time"
 )
 
-func (a *Adel) LoadTime(start time.Time) {
+func (a *Adele) LoadTime(start time.Time) {
 	elapsed := time.Since(start)
 	caller, _, _, _ := runtime.Caller(1)
 	funcObj := runtime.FuncForPC(caller)

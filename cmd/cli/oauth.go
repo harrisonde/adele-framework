@@ -7,13 +7,13 @@ import (
 	"strings"
 
 	"github.com/fatih/color"
-	"github.com/harrisonde/adel"
+	"github.com/harrisonde/adele"
 )
 
-var OauthCommand = &adel.Command{
+var OauthCommand = &adele.Command{
 	Name:        "make oauth",
 	Help:        "install oauth",
-	Description: "install oauth2 authentication into your adel application",
+	Description: "install oauth2 authentication into your adele application",
 	Usage:       "make oauth",
 	Options:     map[string]string{},
 }
@@ -110,7 +110,7 @@ func doOauth() error {
 		return err
 	}
 
-	cmd := exec.Command("go", "get", "github.com/harrisonde/adel")
+	cmd := exec.Command("go", "get", "github.com/harrisonde/adele")
 	err = cmd.Start()
 	if err != nil {
 		exitGracefully(err)
@@ -155,7 +155,7 @@ func doOauth() error {
 	fmt.Printf("\n      routes:")
 	fmt.Printf("\n        r.Post(\"/oauth/token\", a.Handlers.PasswordGrantExchange)")
 	color.Green("\n  5. create your first client")
-	fmt.Printf("\n    $ adel oauth client <client name> --user=<id>")
+	fmt.Printf("\n    $ adele oauth client <client name> --user=<id>")
 	fmt.Printf("\n")
 
 	return nil

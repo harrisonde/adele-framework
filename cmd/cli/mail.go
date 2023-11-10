@@ -4,10 +4,10 @@ import (
 	"errors"
 	"strings"
 
-	"github.com/harrisonde/adel"
+	"github.com/harrisonde/adele"
 )
 
-var MakeMailCommand = &adel.Command{
+var MakeMailCommand = &adele.Command{
 	Name:        "make mail",
 	Help:        "create a new mail template",
 	Description: "use the make mail command to create a new mail template in the mail directory",

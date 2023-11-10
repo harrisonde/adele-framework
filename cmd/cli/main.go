@@ -6,10 +6,10 @@ import (
 	"os"
 
 	"github.com/fatih/color"
-	"github.com/harrisonde/adel"
+	"github.com/harrisonde/adele"
 )
 
-var ade adel.Adel
+var ade adele.Adele
 var message string
 var cmdOptions []string
 

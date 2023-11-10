@@ -1,4 +1,4 @@
-package adel
+package adele
 
 import "database/sql"
 

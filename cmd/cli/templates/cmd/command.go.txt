@@ -1,6 +1,6 @@
 package cmd
 
-var ${CMDNAME}Command = &adel.Command{
+var ${CMDNAME}Command = &adele.Command{
 	Name: "${CMDNAME}",
 	Help: "",
 	Description: "",

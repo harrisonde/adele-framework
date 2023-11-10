@@ -2,9 +2,10 @@ package session
 
 import (
 	"fmt"
-	"github.com/alexedwards/scs/v2"
 	"reflect"
 	"testing"
+
+	"github.com/alexedwards/scs/v2"
 )
 
 func TestSession_InitSession(t *testing.T) {
@@ -13,7 +14,7 @@ func TestSession_InitSession(t *testing.T) {
 	a := &Session{
 		CookieLifetime: "100",
 		CookiePersist:  "true",
-		CookieName:     "Adel",
+		CookieName:     "Adele",
 		CookieDomain:   "localhost",
 		SessionType:    "cookie",
 	}

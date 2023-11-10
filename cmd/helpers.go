@@ -12,11 +12,11 @@ import (
 	"strings"
 
 	"github.com/fatih/color"
-	"github.com/harrisonde/adel"
+	"github.com/harrisonde/adele"
 	"github.com/rodaine/table"
 )
 
-type CommandsHelper map[int]adel.Command
+type CommandsHelper map[int]adele.Command
 
 //go:embed cli/*.go
 var efs embed.FS
@@ -35,13 +35,13 @@ func GetHelp(args ...string) string {
 
 	var commands = CommandsHelper{}
 
-	adelCommands, err := LoadDefaultCommands()
+	adeleCommands, err := LoadDefaultCommands()
 	if err != nil {
-		color.Yellow(fmt.Sprintf("error loading adel help command, %s", err))
+		color.Yellow(fmt.Sprintf("error loading adele help command, %s", err))
 	}
 
 	p := 1
-	for _, command := range adelCommands {
+	for _, command := range adeleCommands {
 		commands[p] = command
 		p++
 	}
@@ -217,10 +217,10 @@ func LoadCommands() (CommandsHelper, error) {
 	return commandsHelpers, nil
 }
 
-func ParseCommand(commandBody string) (*adel.Command, error) {
+func ParseCommand(commandBody string) (*adele.Command, error) {
 
-	cmd := &adel.Command{}
-	r := regexp.MustCompile("&adel.Command{(?s)(.*})")
+	cmd := &adele.Command{}
+	r := regexp.MustCompile("&adele.Command{(?s)(.*})")
 
 	cmdStruct := r.FindStringSubmatch(commandBody)
 
@@ -276,7 +276,7 @@ func ParseCommand(commandBody string) (*adel.Command, error) {
 		}
 	}
 
-	if cmd == (&adel.Command{}) {
+	if cmd == (&adele.Command{}) {
 		return cmd, errors.New("empty command; please use make command to create a new command template")
 	}
 

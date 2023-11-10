@@ -6,10 +6,10 @@ import (
 	"strconv"
 
 	"github.com/fatih/color"
-	"github.com/harrisonde/adel"
+	"github.com/harrisonde/adele"
 )
 
-var MakeClientCommand = &adel.Command{
+var MakeClientCommand = &adele.Command{
 	Name:        "oauth client",
 	Help:        "create a new oauth client",
 	Description: "create a new oauth client for your adel application",

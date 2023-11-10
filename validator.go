@@ -1,4 +1,4 @@
-package adel
+package adele
 
 import (
 	"crypto/sha1"
@@ -23,7 +23,7 @@ type Validation struct {
 	Errors map[string]string
 }
 
-func (a *Adel) Validator(data url.Values) *Validation {
+func (a *Adele) Validator(data url.Values) *Validation {
 	return &Validation{
 		Errors: make(map[string]string),
 		Data:   data,

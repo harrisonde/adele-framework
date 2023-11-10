@@ -5,10 +5,10 @@ import (
 	"strings"
 
 	"github.com/fatih/color"
-	"github.com/harrisonde/adel"
+	"github.com/harrisonde/adele"
 )
 
-var IneritaCommand = &adel.Command{
+var IneritaCommand = &adele.Command{
 	Name:        "inertia",
 	Help:        "install inertia js",
 	Description: "install a classic server driven web application using inertia js",

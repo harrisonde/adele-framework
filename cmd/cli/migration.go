@@ -3,10 +3,10 @@ package main
 import (
 	"errors"
 
-	"github.com/harrisonde/adel"
+	"github.com/harrisonde/adele"
 )
 
-var MakeMigrationCommand = &adel.Command{
+var MakeMigrationCommand = &adele.Command{
 	Name:        "make migration",
 	Help:        "create a new migration",
 	Description: "use the make migration command to create a new migration template in the migrations directory",

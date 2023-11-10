@@ -7,10 +7,10 @@ import (
 	"strings"
 
 	"github.com/fatih/color"
-	"github.com/harrisonde/adel"
+	"github.com/harrisonde/adele"
 )
 
-var AuthCommand = &adel.Command{
+var AuthCommand = &adele.Command{
 	Name:        "make auth",
 	Help:        "install authentication",
 	Description: "install full user authentication into your adel application",
@@ -146,7 +146,7 @@ func doAuth() error {
 		exitGracefully(err)
 	}
 
-	cmd := exec.Command("go", "get", "github.com/harrisonde/adel")
+	cmd := exec.Command("go", "get", "github.com/harrisonde/adeleeee")
 	err = cmd.Start()
 	if err != nil {
 		exitGracefully(err)

@@ -10,10 +10,10 @@ import (
 
 	"github.com/fatih/color"
 	"github.com/go-git/go-git/v5"
-	"github.com/harrisonde/adel"
+	"github.com/harrisonde/adele"
 )
 
-var NewCommand = &adel.Command{
+var NewCommand = &adele.Command{
 	Name:        "new",
 	Help:        "create a new application",
 	Description: "use this command to create a new adele application",
@@ -38,7 +38,7 @@ func doNew(appName string) {
 	// clone the skeleton application
 	color.Green("\tCloning repository...")
 	_, err := git.PlainClone("./"+appName, false, &git.CloneOptions{
-		URL:      "https://github.com/harrisonde/adel-app.git",
+		URL:      "https://github.com/harrisonde/adele-app.git",
 		Progress: os.Stdout,
 		Depth:    1,
 	})
@@ -128,7 +128,7 @@ func doNew(appName string) {
 	// run go mod tidy in the project dir
 	color.Yellow("\tRunning go mod tidy ...")
 
-	cmd := exec.Command("go", "get", "github.com/harrisonde/adel")
+	cmd := exec.Command("go", "get", "github.com/harrisonde/adele")
 	err = cmd.Start()
 	if err != nil {
 		exitGracefully(err)

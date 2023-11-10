@@ -2,12 +2,13 @@ package webdavfilesystem
 
 import (
 	"fmt"
-	"github.com/harrisonde/adel/filesystem"
-	"github.com/studio-b12/gowebdav"
 	"io"
 	"os"
 	"path"
 	"strings"
+
+	"github.com/harrisonde/adele/filesystem"
+	"github.com/studio-b12/gowebdav"
 )
 
 type WebDAV struct {

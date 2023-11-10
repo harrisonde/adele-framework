@@ -1,4 +1,4 @@
-package adel
+package adele
 
 import (
 	"database/sql"
@@ -8,7 +8,7 @@ import (
 	_ "github.com/jackc/pgx/v4/stdlib"
 )
 
-func (a *Adel) OpenDB(dbType, dsn string) (*sql.DB, error) {
+func (a *Adele) OpenDB(dbType, dsn string) (*sql.DB, error) {
 	if dbType == "postgres" || dbType == "postgresql" {
 		dbType = "pgx"
 	}

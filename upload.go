@@ -1,17 +1,18 @@
-package adel
+package adele
 
 import (
 	"errors"
 	"fmt"
-	"github.com/gabriel-vasile/mimetype"
-	"github.com/harrisonde/adel/filesystem"
 	"io"
 	"net/http"
 	"os"
 	"path"
+
+	"github.com/gabriel-vasile/mimetype"
+	"github.com/harrisonde/adele/filesystem"
 )
 
-func (a *Adel) UploadFile(r *http.Request, destination, field string, fs filesystem.FS) error {
+func (a *Adele) UploadFile(r *http.Request, destination, field string, fs filesystem.FS) error {
 	fileName, err := a.getFileToUpload(r, field)
 
 	if err != nil {
@@ -40,7 +41,7 @@ func (a *Adel) UploadFile(r *http.Request, destination, field string, fs filesys
 	return nil
 }
 
-func (a *Adel) getFileToUpload(r *http.Request, fieldName string) (string, error) {
+func (a *Adele) getFileToUpload(r *http.Request, fieldName string) (string, error) {
 	_ = r.ParseMultipartForm(a.config.uploads.maxUploadSize)
 
 	file, header, err := r.FormFile(fieldName)

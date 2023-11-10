@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/harrisonde/adel"
+	"github.com/harrisonde/adele"
 )
 
-var MakeSessionCommand = &adel.Command{
+var MakeSessionCommand = &adele.Command{
 	Name:        "make session",
 	Help:        "install sessions",
 	Description: "use the make session command to install session into your application; creates a table in the database to store sessions and runs migrations",

@@ -6,10 +6,10 @@ import (
 	"os/exec"
 
 	"github.com/fatih/color"
-	"github.com/harrisonde/adel"
+	"github.com/harrisonde/adele"
 )
 
-var ServerCommand = &adel.Command{
+var ServerCommand = &adele.Command{
 	Name:        "server",
 	Help:        "manage the application server",
 	Description: "use the server command to start or place server in maintenance mode",
@@ -57,7 +57,7 @@ func boot() error {
 		return errors.New("Cannot start application server without a binary.")
 	}
 
-	writeOutput("Adel is running on "+os.Getenv("APP_URL"), "info")
+	writeOutput("adele is running on "+os.Getenv("APP_URL"), "info")
 	writeOutput("Press Ctrl+C to stop the server\n")
 
 	cmd := exec.Command(ade.RootPath + "/tmp/" + ade.AppName)

@@ -145,13 +145,13 @@ func doNew(appName string) {
 
 	// what binary do we need?
 	color.Yellow("\tStaring to request cli binary ...")
-	binary := ""
+	binary := "adele-framework_"
 	if runtime.GOOS == "darwin" {
-		binary = "adele_darwin_x86_64.tar.gz"
+		binary = binary + "darwin_x86_64.tar.gz"
 	} else if runtime.GOOS == "linux" {
-		binary = "adele_linux_arm64.tar.gz"
+		binary = binary + "linux_arm64.tar.gz"
 	} else {
-		binary = "adele_linux_windows.exe"
+		binary = binary + "windows.exe"
 	}
 
 	// build up url to repo

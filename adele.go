@@ -4,9 +4,7 @@ import (
 	"fmt"
 	"log"
 
-	//"net"
 	"net/http"
-	//"net/rpc"
 	"os"
 	"path/filepath"
 	"strconv"

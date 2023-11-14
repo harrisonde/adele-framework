@@ -1,8 +1,10 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"io"
+	"net/http"
 	"os"
 	"os/exec"
 	"runtime"
@@ -11,6 +13,7 @@ import (
 	"github.com/fatih/color"
 	"github.com/go-git/go-git/v5"
 	"github.com/harrisonde/adele"
+	"github.com/mholt/archiver/v3"
 )
 
 var NewCommand = &adele.Command{
@@ -140,6 +143,64 @@ func doNew(appName string) {
 		exitGracefully(err)
 	}
 
-	color.Yellow("\tDone building " + appName)
+	// what binary do we need?
+	color.Yellow("\tStaring to request cli binary ...")
+	binary := ""
+	if runtime.GOOS == "darwin" {
+		binary = "adele_darwin_x86_64.tar.gz"
+	} else if runtime.GOOS == "linux" {
+		binary = "adele_linux_arm64.tar.gz"
+	} else {
+		binary = "adele_linux_windows.exe"
+	}
+
+	// build up url to repo
+	version := ade.Version
+	var url string
+	if ade.Version == "" {
+		url = "https://github.com/harrisonde/adele/releases/latest/download/" + binary
+	} else {
+		url = "https://github.com/harrisonde/adele/releases/download/" + version + "/" + binary
+	}
+
+	// Download
+	color.Yellow("\tDownloading cli binary ...")
+	err = os.Mkdir("./tmp", 0777)
+	if err != nil {
+		exitGracefully(err)
+	}
+
+	path := "./tmp/" + binary   // update this for package use
+	out, err := os.Create(path) // update to
+	if err != nil {
+		exitGracefully(err)
+	}
+
+	defer out.Close()
+
+	resp, err := http.Get(url)
+	if err != nil {
+		exitGracefully(err)
+	}
+
+	if resp.StatusCode != 200 {
+		exitGracefully(errors.New("unable to download the cli go binary from github, please manually download from https://github.com/harrisonde/adele/releases and unpack in your project's /cmd directory"))
+	}
+	defer resp.Body.Close()
+
+	_, err = io.Copy(out, resp.Body)
+	if err != nil {
+		exitGracefully(err)
+	}
+
+	// extract the archive
+	color.Yellow("\tExtracting cli binary and copying to cmd dir ...")
+	err = archiver.Extract(path, "cli", "./cmd")
+	if err != nil {
+		exitGracefully(err)
+	}
+
+	color.Yellow("\tDone creating " + appName)
+	color.White("\tgo build something awesome!")
 
 }

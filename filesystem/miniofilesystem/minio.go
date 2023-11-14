@@ -7,7 +7,7 @@ import (
 	"path"
 	"strings"
 
-	"github.com/harrisonde/adele/filesystem"
+	"github.com/harrisonde/adele-framework/filesystem"
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"
 )

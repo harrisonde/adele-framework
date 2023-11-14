@@ -8,7 +8,7 @@ import (
 	"path"
 	"strings"
 
-	"github.com/harrisonde/adele/filesystem"
+	"github.com/harrisonde/adele-framework/filesystem"
 	"github.com/pkg/sftp"
 	"golang.org/x/crypto/ssh"
 )

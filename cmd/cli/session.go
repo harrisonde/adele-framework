@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/harrisonde/adele"
+	"github.com/harrisonde/adele-framework"
 )
 
 var MakeSessionCommand = &adele.Command{

@@ -9,7 +9,7 @@ import (
 	"path"
 
 	"github.com/gabriel-vasile/mimetype"
-	"github.com/harrisonde/adele/filesystem"
+	"github.com/harrisonde/adele-framework/filesystem"
 )
 
 func (a *Adele) UploadFile(r *http.Request, destination, field string, fs filesystem.FS) error {

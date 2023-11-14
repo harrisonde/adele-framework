@@ -1,6 +1,6 @@
 package main
 
-import "github.com/harrisonde/adele"
+import "github.com/harrisonde/adele-framework"
 
 var MakeMigrateDownCommand = &adele.Command{
 	Name:        "migrate down",

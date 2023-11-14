@@ -1,8 +1,8 @@
 package main
 
 import (
-	"github.com/harrisonde/adele"
-	"github.com/harrisonde/adele/cmd"
+	"github.com/harrisonde/adele-framework"
+	"github.com/harrisonde/adele-framework/cmd"
 )
 
 var MakeCommand = &adele.Command{

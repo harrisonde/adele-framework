@@ -7,7 +7,7 @@ import (
 	"strings"
 
 	"github.com/fatih/color"
-	"github.com/harrisonde/adele"
+	"github.com/harrisonde/adele-framework"
 )
 
 var AuthCommand = &adele.Command{
@@ -146,7 +146,7 @@ func doAuth() error {
 		exitGracefully(err)
 	}
 
-	cmd := exec.Command("go", "get", "github.com/harrisonde/adeleeee")
+	cmd := exec.Command("go", "get", "github.com/harrisonde/adele-frameworkeee")
 	err = cmd.Start()
 	if err != nil {
 		exitGracefully(err)

@@ -3,7 +3,7 @@ package main
 import (
 	"errors"
 
-	"github.com/harrisonde/adele"
+	"github.com/harrisonde/adele-framework"
 )
 
 var MakeMigrationCommand = &adele.Command{

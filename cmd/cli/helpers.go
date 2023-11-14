@@ -9,7 +9,7 @@ import (
 	"strings"
 
 	"github.com/fatih/color"
-	"github.com/harrisonde/adele/cmd"
+	"github.com/harrisonde/adele-framework/cmd"
 	"github.com/joho/godotenv"
 )
 

@@ -6,7 +6,7 @@ import (
 	"os/exec"
 
 	"github.com/fatih/color"
-	"github.com/harrisonde/adele"
+	"github.com/harrisonde/adele-framework"
 )
 
 var ServerCommand = &adele.Command{

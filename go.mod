@@ -1,4 +1,4 @@
-module github.com/harrisonde/adele
+module github.com/harrisonde/adele-framework
 
 go 1.20
 

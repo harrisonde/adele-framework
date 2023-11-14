@@ -5,7 +5,7 @@ import (
 	"io/ioutil"
 	"strings"
 
-	"github.com/harrisonde/adele"
+	"github.com/harrisonde/adele-framework"
 	"github.com/iancoleman/strcase"
 )
 

@@ -6,7 +6,7 @@ import (
 	"strconv"
 
 	"github.com/fatih/color"
-	"github.com/harrisonde/adele"
+	"github.com/harrisonde/adele-framework"
 )
 
 var MakeClientCommand = &adele.Command{

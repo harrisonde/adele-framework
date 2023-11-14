@@ -5,7 +5,7 @@ import (
 	"strings"
 
 	"github.com/gertd/go-pluralize"
-	"github.com/harrisonde/adele"
+	"github.com/harrisonde/adele-framework"
 	"github.com/iancoleman/strcase"
 )
 

@@ -3,7 +3,7 @@ package adele
 import (
 	"net/http"
 
-	"github.com/harrisonde/adele/logger"
+	"github.com/harrisonde/adele-framework/logger"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"

@@ -12,7 +12,7 @@ import (
 
 	"github.com/fatih/color"
 	"github.com/go-git/go-git/v5"
-	"github.com/harrisonde/adele"
+	"github.com/harrisonde/adele-framework"
 	"github.com/mholt/archiver/v3"
 )
 
@@ -41,7 +41,7 @@ func doNew(appName string) {
 	// clone the skeleton application
 	color.Green("\tCloning repository...")
 	_, err := git.PlainClone("./"+appName, false, &git.CloneOptions{
-		URL:      "https://github.com/harrisonde/adele-app.git",
+		URL:      "https://github.com/harrisonde/adele.git",
 		Progress: os.Stdout,
 		Depth:    1,
 	})
@@ -131,7 +131,7 @@ func doNew(appName string) {
 	// run go mod tidy in the project dir
 	color.Yellow("\tRunning go mod tidy ...")
 
-	cmd := exec.Command("go", "get", "github.com/harrisonde/adele")
+	cmd := exec.Command("go", "get", "github.com/harrisonde/adele-framework")
 	err = cmd.Start()
 	if err != nil {
 		exitGracefully(err)
@@ -158,13 +158,13 @@ func doNew(appName string) {
 	version := ade.Version
 	var url string
 	if ade.Version == "" {
-		url = "https://github.com/harrisonde/adele/releases/latest/download/" + binary
+		url = "https://github.com/harrisonde/adele-framework/releases/latest/download/" + binary
 	} else {
-		url = "https://github.com/harrisonde/adele/releases/download/" + version + "/" + binary
+		url = "https://github.com/harrisonde/adele-framework/releases/download/" + version + "/" + binary
 	}
 
 	// Download
-	color.Yellow("\tDownloading cli binary ...")
+	color.Yellow("\tDownloading cli binary from " + url)
 	err = os.Mkdir("./tmp", 0777)
 	if err != nil {
 		exitGracefully(err)
@@ -184,7 +184,7 @@ func doNew(appName string) {
 	}
 
 	if resp.StatusCode != 200 {
-		exitGracefully(errors.New("unable to download the cli go binary from github, please manually download from https://github.com/harrisonde/adele/releases and unpack in your project's /cmd directory"))
+		exitGracefully(errors.New("unable to gracefully download the cli go binary, please manually download from https://github.com/harrisonde/adele-framework/releases and unpack in your project's /cmd directory"))
 	}
 	defer resp.Body.Close()
 

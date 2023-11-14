@@ -6,7 +6,7 @@ import (
 	"regexp"
 
 	"github.com/fatih/color"
-	"github.com/harrisonde/adele"
+	"github.com/harrisonde/adele-framework"
 )
 
 var MakeKeyCommand = &adele.Command{

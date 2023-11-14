@@ -12,7 +12,7 @@ import (
 	"strings"
 
 	"github.com/fatih/color"
-	"github.com/harrisonde/adele"
+	"github.com/harrisonde/adele-framework"
 	"github.com/rodaine/table"
 )
 

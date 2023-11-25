@@ -10,8 +10,6 @@ var VersionCommand = &adele.Command{
 	Help: "print application version",
 }
 
-const version = "1.0.0"
-
 func printVersion() {
-	color.Yellow("Application version: " + version)
+	color.Yellow("Application version: " + ade.Version)
 }

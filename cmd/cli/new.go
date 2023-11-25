@@ -200,6 +200,12 @@ func doNew(appName string) {
 		exitGracefully(err)
 	}
 
+	// symlink to root of project
+	err = os.Symlink("./cmd/cli", "cli")
+	if err != nil {
+		fmt.Println(err)
+	}
+
 	color.Yellow("\tDone creating " + appName)
 	color.White("\tgo build something awesome!")
 

@@ -8,3 +8,8 @@ Adele ships with common web development features consumed by most modern web app
 
 # Learning Adele
 Adele aims to provided developer friendly documentation and code samples to make getting started as painless as possible. If you are new to the framework, please be sure to checkout our [extensive documentation](https://git.86labs.cloud/harrison/adele).
+
+## License
+Copyright 2025 Cidekar, LLC. All rights reserved.
+
+[Apache License 2.0](./LICENSE)

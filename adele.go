@@ -2,11 +2,6 @@ package adele
 
 const Version = "v0.0.0"
 
-type Adele struct {
-	AppName string
-	Version string
-}
-
 // Create a new instance of the Adele type using a pointer to Adele with the
 // root path of the application as a argument. The new-up is called by project adele's consuming package
 // to bootstrap the framework.

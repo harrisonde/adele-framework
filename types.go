@@ -1,6 +1,8 @@
 package adele
 
 type Adele struct {
-	AppName string
-	Version string
+	AppName  string
+	Debug    bool
+	RootPath string
+	Version  string
 }

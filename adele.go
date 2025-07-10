@@ -2,6 +2,8 @@ package adele
 
 import (
 	"fmt"
+	"os"
+	"strconv"
 
 	"github.com/joho/godotenv"
 )
@@ -29,6 +31,10 @@ func (a *Adele) New(rootPath string) error {
 	if err != nil {
 		return err
 	}
+
+	a.Debug, _ = strconv.ParseBool(os.Getenv("DEBUG"))
+	a.RootPath = rootPath
+	a.Version = Version
 
 	return nil
 }

@@ -2,10 +2,18 @@ package adele
 
 import (
 	"fmt"
+	"log"
+	"net/http"
 	"os"
 	"strconv"
 
+	"github.com/cidekar/adele-framework/logger"
+	"github.com/cidekar/adele-framework/mux"
+	"github.com/go-chi/chi/v5/middleware"
+	crs "github.com/go-chi/cors"
 	"github.com/joho/godotenv"
+	"github.com/sirupsen/logrus"
+	"gopkg.in/yaml.v2"
 )
 
 const Version = "v0.0.0"
@@ -32,11 +40,102 @@ func (a *Adele) New(rootPath string) error {
 		return err
 	}
 
+	infoLog, errorLog := a.CreateLoggers()
+
+	corsConfig, err := a.LoadCorsConfigurationFromFile()
+	if err != nil {
+		return err
+	}
+
+	a.Routes = a.CreateRouter(corsConfig).(*mux.Mux)
+
 	a.Debug, _ = strconv.ParseBool(os.Getenv("DEBUG"))
 	a.RootPath = rootPath
 	a.Version = Version
+	a.InfoLog = infoLog
+	a.ErrorLog = errorLog
 
 	return nil
+}
+
+// Load the applciation CORS (Cross-Origin Resource Sharing) configuration
+// from a YAML file and returning it as a mux.Cors object.
+func (a *Adele) LoadCorsConfigurationFromFile() (*mux.Cors, error) {
+	configFile, err := os.ReadFile(a.RootPath + "/config/cors.yml")
+	if err != nil {
+		return nil, fmt.Errorf("failed to read cors config file: %v", err)
+	}
+
+	var corsConfig mux.Cors
+	err = yaml.Unmarshal(configFile, &corsConfig)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse config file: %v", err)
+	}
+
+	return &corsConfig, nil
+}
+
+// Stup up and configures an HTTP router using the adele mux package. This
+// function returns an http.Handler which represents a chain of middleware
+// and eventually, the handlers for specific routes.
+func (a *Adele) CreateRouter(corsConfig mux.Cors) http.Handler {
+	mux := mux.NewRouter()
+	mux.Use(middleware.RequestID)
+	mux.Use(middleware.RealIP)
+	mux.Use(a.middleware.RateLimiter())
+
+	corsOptions := crs.Options{
+		AllowedOrigins:   corsConfig.AllowedOrigins,
+		AllowedMethods:   corsConfig.AllowedMethods,
+		AllowedHeaders:   corsConfig.AllowedHeaders,
+		ExposedHeaders:   corsConfig.ExposedHeaders,
+		AllowCredentials: corsConfig.AllowCredentials,
+		MaxAge:           corsConfig.MaxAge,
+	}
+	mux.Use(crs.Handler(corsOptions))
+
+	if a.Debug {
+		mux.Use(logger.NewRequestLogger())
+		mux.Use(a.middleware.RecovererWithDebug)
+	} else {
+		mux.Use(middleware.Recoverer)
+	}
+
+	mux.Use(a.middleware.SessionLoad)
+	mux.Use(a.middleware.CheckForMaintenanceMode)
+
+	return mux
+}
+
+// Create application loggers
+func (a *Adele) CreateLoggers() (*log.Logger, *log.Logger) {
+	var infoLog *log.Logger
+	var errorLog *log.Logger
+	var format *logrus.Entry
+	if os.Getenv("LOG_FORMAT") == "JSON" {
+		l := logrus.StandardLogger()
+		l.SetFormatter(&logrus.JSONFormatter{})
+		format = l.WithField("logger", "std")
+	} else {
+		l := logrus.StandardLogger()
+		l.SetFormatter(&logrus.TextFormatter{})
+		format = l.WithField("logger", "std")
+	}
+
+	infoLog = log.New(os.Stdout, "", log.Ldate|log.Ltime|log.Lshortfile)
+	infoLog.SetOutput(&logger.IoToLogWriter{
+		Entry: format,
+		Type:  "Info",
+	})
+
+	errorLog = log.New(os.Stdout, "", log.Ldate|log.Ltime|log.Lshortfile)
+	errorLog.SetOutput(&logger.IoToLogWriter{
+		Entry: logrus.StandardLogger().WithField("logger", "std"),
+		Type:  "Error",
+	})
+
+	return infoLog, errorLog
+
 }
 
 // Ensure that a environment file at a specific path exists, creating it if it's missing, and returning

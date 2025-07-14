@@ -2,7 +2,6 @@ package adele
 
 import (
 	"fmt"
-	"log"
 	"net/http"
 	"os"
 	"strconv"
@@ -40,28 +39,26 @@ func (a *Adele) New(rootPath string) error {
 		return err
 	}
 
-	infoLog, errorLog := a.CreateLoggers()
+	log := a.CreateLoggers()
 
-	corsConfig, err := a.LoadCorsConfigurationFromFile()
+	corsConfig, err := a.LoadCorsConfigurationFromFile(rootPath)
 	if err != nil {
 		return err
 	}
 
-	a.Routes = a.CreateRouter(corsConfig).(*mux.Mux)
-
+	a.Routes = a.CreateRouter(*corsConfig).(*mux.Mux)
 	a.Debug, _ = strconv.ParseBool(os.Getenv("DEBUG"))
 	a.RootPath = rootPath
 	a.Version = Version
-	a.InfoLog = infoLog
-	a.ErrorLog = errorLog
+	a.Log = log
 
 	return nil
 }
 
 // Load the applciation CORS (Cross-Origin Resource Sharing) configuration
 // from a YAML file and returning it as a mux.Cors object.
-func (a *Adele) LoadCorsConfigurationFromFile() (*mux.Cors, error) {
-	configFile, err := os.ReadFile(a.RootPath + "/config/cors.yml")
+func (a *Adele) LoadCorsConfigurationFromFile(rootPath string) (*mux.Cors, error) {
+	configFile, err := os.ReadFile(fmt.Sprintf("%s/config/cors.yml", rootPath))
 	if err != nil {
 		return nil, fmt.Errorf("failed to read cors config file: %v", err)
 	}
@@ -75,7 +72,7 @@ func (a *Adele) LoadCorsConfigurationFromFile() (*mux.Cors, error) {
 	return &corsConfig, nil
 }
 
-// Stup up and configures an HTTP router using the adele mux package. This
+// Setup up and configures an HTTP router using the adele mux package. This
 // function returns an http.Handler which represents a chain of middleware
 // and eventually, the handlers for specific routes.
 func (a *Adele) CreateRouter(corsConfig mux.Cors) http.Handler {
@@ -95,7 +92,13 @@ func (a *Adele) CreateRouter(corsConfig mux.Cors) http.Handler {
 	mux.Use(crs.Handler(corsOptions))
 
 	if a.Debug {
-		mux.Use(logger.NewRequestLogger())
+		muxLog := logrus.New()
+		if os.Getenv("LOG_FORMAT") == "JSON" {
+			muxLog.SetFormatter(&logrus.JSONFormatter{})
+		} else {
+			muxLog.SetFormatter(&logrus.TextFormatter{})
+		}
+		mux.Use(logger.NewStructuredLogger(muxLog))
 		mux.Use(a.middleware.RecovererWithDebug)
 	} else {
 		mux.Use(middleware.Recoverer)
@@ -108,43 +111,29 @@ func (a *Adele) CreateRouter(corsConfig mux.Cors) http.Handler {
 }
 
 // Create application loggers
-func (a *Adele) CreateLoggers() (*log.Logger, *log.Logger) {
-	var infoLog *log.Logger
-	var errorLog *log.Logger
-	var format *logrus.Entry
+// func (a *Adele) CreateLoggers() (*log.Logger, *log.Logger) {
+func (a *Adele) CreateLoggers() *logrus.Logger {
+
+	log := logrus.New()
+	log.SetLevel(logrus.DebugLevel)
+
 	if os.Getenv("LOG_FORMAT") == "JSON" {
-		l := logrus.StandardLogger()
-		l.SetFormatter(&logrus.JSONFormatter{})
-		format = l.WithField("logger", "std")
+		log.SetFormatter(&logrus.JSONFormatter{})
 	} else {
-		l := logrus.StandardLogger()
-		l.SetFormatter(&logrus.TextFormatter{})
-		format = l.WithField("logger", "std")
+		log.SetFormatter(&logrus.TextFormatter{})
 	}
 
-	infoLog = log.New(os.Stdout, "", log.Ldate|log.Ltime|log.Lshortfile)
-	infoLog.SetOutput(&logger.IoToLogWriter{
-		Entry: format,
-		Type:  "Info",
-	})
-
-	errorLog = log.New(os.Stdout, "", log.Ldate|log.Ltime|log.Lshortfile)
-	errorLog.SetOutput(&logger.IoToLogWriter{
-		Entry: logrus.StandardLogger().WithField("logger", "std"),
-		Type:  "Error",
-	})
-
-	return infoLog, errorLog
-
+	return log
 }
 
 // Ensure that a environment file at a specific path exists, creating it if it's missing, and returning
 // any errors that may arise.
 func (a *Adele) CreateEnvironmentFile(rootPath string) error {
-	err := a.CreateFileIfNotExist(fmt.Sprintf("%s", rootPath))
+	err := a.CreateFileIfNotExist(fmt.Sprintf("%s/.env", rootPath))
 	if err != nil {
 		return err
 	}
+
 	return nil
 }
 

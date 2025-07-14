@@ -9,18 +9,13 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-type StructuredLogger struct {
-	Logger *logrus.Logger
-}
-
-type StructuredLoggerEntry struct {
-	Logger logrus.FieldLogger
-}
-
+// Create and configure an HTTP request logging middleware using the logrus library.
 func NewStructuredLogger(logger *logrus.Logger) func(next http.Handler) http.Handler {
 	return middleware.RequestLogger(&StructuredLogger{logger})
 }
 
+// Create a new structured log entry for an incoming HTTP request within a logging middleware,
+// the entry format is designed to play nice with logrus library for logging.
 func (l *StructuredLogger) NewLogEntry(r *http.Request) middleware.LogEntry {
 	entry := &StructuredLoggerEntry{Logger: logrus.NewEntry(l.Logger)}
 	logFields := logrus.Fields{}
@@ -47,6 +42,7 @@ func (l *StructuredLogger) NewLogEntry(r *http.Request) middleware.LogEntry {
 	return entry
 }
 
+// Log details about the HTTP response after it has been sent to the client
 func (l *StructuredLoggerEntry) Write(status, bytes int, header http.Header, elapsed time.Duration, extra interface{}) {
 	l.Logger = l.Logger.WithFields(logrus.Fields{
 		"resp_status": status, "resp_bytes_length": bytes,
@@ -56,6 +52,7 @@ func (l *StructuredLoggerEntry) Write(status, bytes int, header http.Header, ela
 	l.Logger.Print()
 }
 
+// Handle and log panic situations within a structured logging context.
 func (l *StructuredLoggerEntry) Panic(v interface{}, stack []byte) {
 	l.Logger = l.Logger.WithFields(logrus.Fields{
 		"stack": string(stack),

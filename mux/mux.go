@@ -96,6 +96,12 @@ func (r *Mux) Connect(pattern string, handler http.HandlerFunc) {
 	r.Mux.Connect(cleanMuxScopeAnnotation(pattern), handler)
 }
 
+// Find searches the routing tree for the pattern that matches
+// the method/path.
+func (r *Mux) Find(rctx *chi.Context, method, path string) string {
+	return r.Mux.Find(rctx, method, path)
+}
+
 // Head adds the route `pattern` that matches a HEAD http method to execute the
 // `handlerFn` http.HandlerFunc.
 func (r *Mux) Head(pattern string, handler http.HandlerFunc) {

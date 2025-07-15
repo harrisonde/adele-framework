@@ -10,18 +10,23 @@ import (
 // Provided a HTTP server implementation that is ready to handle requests.
 func (a *Adele) ListenAndServe() error {
 
+	port := "4000"
+	if os.Getenv("PORT") != "" {
+		os.Getenv("PORT")
+	}
+
 	srv := &http.Server{
-		Addr: fmt.Sprintf(":%s", os.Getenv("PORT")),
+		Addr: fmt.Sprintf(":%s", port),
 		//TODO: is the error logger necessary here?
 		//
 		//ErrorLog:     a.ErrorLog,
-		Handler:      nil,
+		Handler:      a.Routes,
 		IdleTimeout:  30 * time.Second,
 		ReadTimeout:  30 * time.Second,
 		WriteTimeout: 600 * time.Second,
 	}
 
-	a.Log.Info("ready to handle http requests")
+	a.Log.Debug(fmt.Sprintf("http requests handled on port %s", port))
 
 	return srv.ListenAndServe()
 }

@@ -10,7 +10,7 @@ import (
 )
 
 // Create and configure an HTTP request logging middleware using the logrus library.
-func NewStructuredLogger(logger *logrus.Logger) func(next http.Handler) http.Handler {
+func HttpRequesLogger(logger *logrus.Logger) func(next http.Handler) http.Handler {
 	return middleware.RequestLogger(&StructuredLogger{logger})
 }
 

@@ -4,9 +4,8 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-type IoToLogWriter struct {
-	Entry *logrus.Entry
-	Type  string
+type Logger struct {
+	Logger *logrus.Logger
 }
 
 type StructuredLogger struct {

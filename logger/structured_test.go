@@ -8,10 +8,10 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func TestFormatter_NewStructuredLogger(t *testing.T) {
+func TestFormatter_HttpLogger(t *testing.T) {
 	l := logrus.Logger{}
 
-	rl := NewStructuredLogger(&l)
+	rl := HttpRequesLogger(&l)
 
 	if reflect.TypeOf(rl).String() != "func(http.Handler) http.Handler" {
 		t.Error("mux logger did return expected type")

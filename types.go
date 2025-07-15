@@ -7,13 +7,16 @@ import (
 )
 
 type Adele struct {
-	AppName string
-	Debug   bool
-	// ErrorLog   *log.Logger
-	// InfoLog    *log.Logger
+	AppName    string
+	config     config
+	Debug      bool
 	Log        *logrus.Logger
 	middleware middleware.Middleware
 	Routes     *mux.Mux
 	RootPath   string
 	Version    string
+}
+
+type config struct {
+	port string
 }

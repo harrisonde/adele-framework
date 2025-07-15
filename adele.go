@@ -11,7 +11,6 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 	crs "github.com/go-chi/cors"
 	"github.com/joho/godotenv"
-	"github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v2"
 )
 
@@ -39,7 +38,7 @@ func (a *Adele) New(rootPath string) error {
 		return err
 	}
 
-	log := a.CreateLoggers()
+	log := logger.CreateLogger()
 
 	corsConfig, err := a.LoadCorsConfigurationFromFile(rootPath)
 	if err != nil {
@@ -51,6 +50,9 @@ func (a *Adele) New(rootPath string) error {
 	a.RootPath = rootPath
 	a.Version = Version
 	a.Log = log
+	a.config = config{
+		port: os.Getenv("PORT"),
+	}
 
 	return nil
 }
@@ -91,39 +93,19 @@ func (a *Adele) CreateRouter(corsConfig mux.Cors) http.Handler {
 	}
 	mux.Use(crs.Handler(corsOptions))
 
-	if a.Debug {
-		muxLog := logrus.New()
-		if os.Getenv("LOG_FORMAT") == "JSON" {
-			muxLog.SetFormatter(&logrus.JSONFormatter{})
-		} else {
-			muxLog.SetFormatter(&logrus.TextFormatter{})
-		}
-		mux.Use(logger.NewStructuredLogger(muxLog))
+	debugMode, _ := strconv.ParseBool(os.Getenv("DEBUG"))
+	if debugMode {
+		mux.Use(logger.HttpRequesLogger(logger.CreateLogger()))
 		mux.Use(a.middleware.RecovererWithDebug)
 	} else {
 		mux.Use(middleware.Recoverer)
 	}
 
-	mux.Use(a.middleware.SessionLoad)
-	mux.Use(a.middleware.CheckForMaintenanceMode)
+	// TODO:
+	//mux.Use(a.middleware.SessionLoad)
+	//mux.Use(a.middleware.CheckForMaintenanceMode)
 
 	return mux
-}
-
-// Create application loggers
-// func (a *Adele) CreateLoggers() (*log.Logger, *log.Logger) {
-func (a *Adele) CreateLoggers() *logrus.Logger {
-
-	log := logrus.New()
-	log.SetLevel(logrus.DebugLevel)
-
-	if os.Getenv("LOG_FORMAT") == "JSON" {
-		log.SetFormatter(&logrus.JSONFormatter{})
-	} else {
-		log.SetFormatter(&logrus.TextFormatter{})
-	}
-
-	return log
 }
 
 // Ensure that a environment file at a specific path exists, creating it if it's missing, and returning

@@ -40,7 +40,7 @@ func (m *Middleware) RecovererWithDebug(next http.Handler) http.Handler {
 				}
 
 				// Log the details of panic in an error log
-				m.ErrorLog.Println(string(trace.StackRaw))
+				m.Log.Error(string(trace.StackRaw))
 
 				// Get the build information
 				build, ok := debug.ReadBuildInfo()
@@ -116,7 +116,7 @@ func (m *Middleware) RecovererWithDebug(next http.Handler) http.Handler {
 
 					source, err := os.ReadFile(trace.FilePath)
 					if err != nil {
-						m.ErrorLog.Println(err)
+						m.Log.Error(err)
 						return
 					}
 
@@ -139,7 +139,7 @@ func (m *Middleware) RecovererWithDebug(next http.Handler) http.Handler {
 
 				err = tmpl.Execute(w, trace)
 				if err != nil {
-					m.ErrorLog.Println(err)
+					m.Log.Error(err)
 					return
 				}
 			}

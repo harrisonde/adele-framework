@@ -17,5 +17,9 @@ test\:all:
 	make test:logger test:middleware test:mux
 test\:logger:
 	@go test ./logger
+test\:middleware:
+	@go test ./middleware
 test\:mux:
 	@go test ./mux
+test\:session:
+	@go test ./session

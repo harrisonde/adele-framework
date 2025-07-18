@@ -5,10 +5,13 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"strings"
 
+	"github.com/alexedwards/scs/v2"
 	"github.com/cidekar/adele-framework/logger"
+	"github.com/cidekar/adele-framework/middleware"
 	"github.com/cidekar/adele-framework/mux"
-	"github.com/go-chi/chi/v5/middleware"
+	"github.com/cidekar/adele-framework/session"
 	crs "github.com/go-chi/cors"
 	"github.com/joho/godotenv"
 	"gopkg.in/yaml.v2"
@@ -38,28 +41,83 @@ func (a *Adele) New(rootPath string) error {
 		return err
 	}
 
-	log := logger.CreateLogger()
+	a.Log = logger.CreateLogger()
 
-	corsConfig, err := a.LoadCorsConfigurationFromFile(rootPath)
+	sess, err := a.BootstrapSessionManager()
 	if err != nil {
 		return err
 	}
 
-	a.Routes = a.CreateRouter(*corsConfig).(*mux.Mux)
+	a.Session = sess
+
+	a.BootstrapMiddleware()
+
+	muxRouter, err := a.BootstrapMux(rootPath)
+	if err != nil {
+		return err
+	}
+
+	a.Routes = muxRouter.(*mux.Mux)
 	a.Debug, _ = strconv.ParseBool(os.Getenv("DEBUG"))
 	a.RootPath = rootPath
 	a.Version = Version
-	a.Log = log
 	a.config = config{
-		port: os.Getenv("PORT"),
+		port:        os.Getenv("PORT"),
+		sessionType: os.Getenv("SESSION_TYPE"),
 	}
 
 	return nil
 }
 
-// Load the applciation CORS (Cross-Origin Resource Sharing) configuration
-// from a YAML file and returning it as a mux.Cors object.
-func (a *Adele) LoadCorsConfigurationFromFile(rootPath string) (*mux.Cors, error) {
+// Configure the middleware for the application by initializing a middleware struct,
+// populating its values using the application configuration.
+func (a *Adele) BootstrapMiddleware() {
+	myMiddleware := middleware.Middleware{
+		FrameworkVersion: a.Version,
+		AppName:          a.AppName,
+		RootPath:         a.RootPath,
+		Log:              a.Log,
+		Session:          a.Session,
+		MaintenanceMode:  a.MaintenanceMode,
+	}
+
+	a.middleware = myMiddleware
+}
+
+// Configure and create the session manager by initializing a session struct, populating
+// its cookie fields by retrieving values from environment variables.
+func (a *Adele) BootstrapSessionManager() (*scs.SessionManager, error) {
+
+	session := session.Session{
+		CookieDomain:   os.Getenv("COOKIE_DOMAIN"),
+		CookieLifetime: os.Getenv("COOKIE_LIFETIME"),
+		CookieName:     os.Getenv("COOKIE_NAME"),
+		CookiePersist:  os.Getenv("COOKIE_PERSIST"),
+		CookieSecure:   os.Getenv("COOKIE_SECURE"),
+	}
+
+	switch strings.ToLower(os.Getenv("SESSION_TYPE")) {
+	case "redis":
+		//...
+
+	case "mysql", "postgres", "mariadb", "postgresql":
+		//...
+	default:
+		a.Log.Warn("sessions using in-memory session store")
+	}
+
+	manager := session.InitSession()
+	fmt.Println("manager", manager)
+	return manager, nil
+}
+
+// Setup up and configures an HTTP router using the adele mux package. This
+// function returns an http.Handler which represents a chain of middleware
+// and eventually, the handlers for specific routes.
+func (a *Adele) BootstrapMux(rootPath string) (http.Handler, error) {
+
+	// Load the applciation CORS (Cross-Origin Resource Sharing) configuration
+	// from a YAML file and returning it as a mux.Cors object.
 	configFile, err := os.ReadFile(fmt.Sprintf("%s/config/cors.yml", rootPath))
 	if err != nil {
 		return nil, fmt.Errorf("failed to read cors config file: %v", err)
@@ -71,16 +129,9 @@ func (a *Adele) LoadCorsConfigurationFromFile(rootPath string) (*mux.Cors, error
 		return nil, fmt.Errorf("failed to parse config file: %v", err)
 	}
 
-	return &corsConfig, nil
-}
-
-// Setup up and configures an HTTP router using the adele mux package. This
-// function returns an http.Handler which represents a chain of middleware
-// and eventually, the handlers for specific routes.
-func (a *Adele) CreateRouter(corsConfig mux.Cors) http.Handler {
 	mux := mux.NewRouter()
-	mux.Use(middleware.RequestID)
-	mux.Use(middleware.RealIP)
+	mux.Use(middleware.RequestID())
+	mux.Use(middleware.RealIP())
 	mux.Use(a.middleware.RateLimiter())
 
 	corsOptions := crs.Options{
@@ -98,14 +149,13 @@ func (a *Adele) CreateRouter(corsConfig mux.Cors) http.Handler {
 		mux.Use(logger.HttpRequesLogger(logger.CreateLogger()))
 		mux.Use(a.middleware.RecovererWithDebug)
 	} else {
-		mux.Use(middleware.Recoverer)
+		mux.Use(middleware.Recoverer())
 	}
 
-	// TODO:
-	//mux.Use(a.middleware.SessionLoad)
-	//mux.Use(a.middleware.CheckForMaintenanceMode)
+	mux.Use(a.middleware.SessionLoad)
+	mux.Use(a.middleware.CheckForMaintenanceMode)
 
-	return mux
+	return mux, nil
 }
 
 // Ensure that a environment file at a specific path exists, creating it if it's missing, and returning
@@ -115,7 +165,6 @@ func (a *Adele) CreateEnvironmentFile(rootPath string) error {
 	if err != nil {
 		return err
 	}
-
 	return nil
 }
 

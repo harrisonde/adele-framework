@@ -14,11 +14,13 @@ coverage:
 ## package tests
 test\:all:
 	@go clean -testcache
-	make test:logger test:middleware test:mux
+	make test:logger test:mailer test:middleware test:mux test:session
 test\:logger:
 	@go test ./logger
 test\:middleware:
 	@go test ./middleware
+test\:mailer:
+	@go test ./mailer
 test\:mux:
 	@go test ./mux
 test\:session:

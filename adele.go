@@ -9,6 +9,7 @@ import (
 
 	"github.com/alexedwards/scs/v2"
 	"github.com/cidekar/adele-framework/logger"
+	"github.com/cidekar/adele-framework/mailer"
 	"github.com/cidekar/adele-framework/middleware"
 	"github.com/cidekar/adele-framework/mux"
 	"github.com/cidekar/adele-framework/session"
@@ -65,8 +66,33 @@ func (a *Adele) New(rootPath string) error {
 		port:        os.Getenv("PORT"),
 		sessionType: os.Getenv("SESSION_TYPE"),
 	}
+	a.Mail = a.BoootstrapMailer()
 
 	return nil
+}
+
+// Configure the mailer for the application by initializing mailer struct. The mailer
+// values are populated by the environemnt variables parsed from the .env file
+// at the root of the application.
+func (a *Adele) BoootstrapMailer() mailer.Mail {
+	port, _ := strconv.Atoi(os.Getenv("SMTP_PORT"))
+	m := mailer.Mail{
+		Domain:      os.Getenv("MAIL_DOMAIN"),
+		Templates:   a.RootPath + "/resources/mail",
+		Host:        os.Getenv("SMTP_HOST"),
+		Port:        port,
+		Username:    os.Getenv("SMTP_USERNAME"),
+		Password:    os.Getenv("SMTP_PASSWORD"),
+		Encryption:  os.Getenv("SMTP_ENCRYPTION"),
+		FromName:    os.Getenv("FROM_NAME"),
+		FromAddress: os.Getenv("FROM_ADDRESS"),
+		Jobs:        make(chan mailer.Message, 20),
+		Results:     make(chan mailer.Result, 20),
+		API:         os.Getenv("MAILER_API"),
+		APIKey:      os.Getenv("MAILER_KEY"),
+		APIUrl:      os.Getenv("MAILER_URL"),
+	}
+	return m
 }
 
 // Configure the middleware for the application by initializing a middleware struct,
@@ -107,7 +133,6 @@ func (a *Adele) BootstrapSessionManager() (*scs.SessionManager, error) {
 	}
 
 	manager := session.InitSession()
-	fmt.Println("manager", manager)
 	return manager, nil
 }
 

@@ -10,12 +10,14 @@ import (
 	"testing"
 
 	"github.com/cidekar/adele-framework/mux"
+	"github.com/sirupsen/logrus"
 )
 
 func Test_Recover(t *testing.T) {
-	// router and middleware
 	r := mux.NewRouter()
-	m := Middleware{}
+	m := Middleware{
+		Log: logrus.New(),
+	}
 	r.Use(m.RecovererWithDebug)
 
 	// output capture for testing

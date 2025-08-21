@@ -36,3 +36,11 @@ func (a *Adele) CreateFileIfNotExist(path string) error {
 	}
 	return nil
 }
+
+// Get environment variable or return default if the value is an empty string.
+func Getenv(key, defaultValue string) string {
+	if value := os.Getenv(key); value != "" {
+		return value
+	}
+	return defaultValue
+}

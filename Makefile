@@ -25,3 +25,5 @@ test\:mux:
 	@go test ./mux
 test\:session:
 	@go test ./session
+test\:render:
+	@go test ./render

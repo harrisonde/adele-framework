@@ -7,11 +7,13 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/CloudyKit/jet/v6"
 	"github.com/alexedwards/scs/v2"
 	"github.com/cidekar/adele-framework/logger"
 	"github.com/cidekar/adele-framework/mailer"
 	"github.com/cidekar/adele-framework/middleware"
 	"github.com/cidekar/adele-framework/mux"
+	"github.com/cidekar/adele-framework/render"
 	"github.com/cidekar/adele-framework/session"
 	crs "github.com/go-chi/cors"
 	"github.com/joho/godotenv"
@@ -62,11 +64,18 @@ func (a *Adele) New(rootPath string) error {
 	a.Debug, _ = strconv.ParseBool(os.Getenv("DEBUG"))
 	a.RootPath = rootPath
 	a.Version = Version
+	a.ViewsTemplateDir = Getenv("VIEWS_TEMPLATE_DIR", "resources/views")
 	a.config = config{
 		port:        os.Getenv("PORT"),
+		renderer:    Getenv("RENDERER", "jet"),
 		sessionType: os.Getenv("SESSION_TYPE"),
 	}
+
 	a.Mail = a.BoootstrapMailer()
+
+	a.JetViews = a.BootstrapJetEngine()
+
+	a.Render = a.BootstrapRender()
 
 	return nil
 }
@@ -134,6 +143,42 @@ func (a *Adele) BootstrapSessionManager() (*scs.SessionManager, error) {
 
 	manager := session.InitSession()
 	return manager, nil
+}
+
+// Setup This code is setting up the Jet template engine for your Adele framework with
+// different configurations based on whether the application is in debug/development mode
+// or production mode—enables features that help during development but would hurt performance
+// in production (like not caching templates and reloading them on every request).
+func (a *Adele) BootstrapJetEngine() *jet.Set {
+	loader := jet.NewOSFileSystemLoader(fmt.Sprintf("%s/%s", a.RootPath, a.ViewsTemplateDir))
+
+	var views *jet.Set
+	if a.Debug {
+		views = jet.NewSet(loader, jet.InDevelopmentMode())
+	} else {
+		views = jet.NewSet(loader)
+	}
+
+	views.AddGlobal("APP_DEBUG", a.Debug)
+
+	return views
+}
+
+// Setup and configuring a render engine- initializes a rendering system that handles
+// template rendering for web responses (HTML pages, emails, etc.). The render system
+// handles Rendering HTML templates for web pages, passing session data to templates,
+// and, managing template inheritance and layouts.
+func (a *Adele) BootstrapRender() *render.Render {
+	r := render.Render{
+		Directory: a.ViewsTemplateDir,
+		Renderer:  a.config.renderer,
+		RootPath:  a.RootPath,
+		Port:      a.config.port,
+		JetViews:  a.JetViews,
+		Session:   a.Session,
+	}
+
+	return &r
 }
 
 // Setup up and configures an HTTP router using the adele mux package. This

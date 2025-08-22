@@ -9,9 +9,7 @@ import (
 	"strings"
 
 	"github.com/CloudyKit/jet/v6"
-	"github.com/alexedwards/scs/v2"
 	"github.com/justinas/nosurf"
-	"github.com/petaki/inertia-go"
 )
 
 func (a *Render) defaultData(td *TemplateData, r *http.Request) *TemplateData {

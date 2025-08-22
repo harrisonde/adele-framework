@@ -3,6 +3,7 @@ package adele
 import (
 	"github.com/CloudyKit/jet/v6"
 	"github.com/alexedwards/scs/v2"
+	"github.com/cidekar/adele-framework/helpers"
 	"github.com/cidekar/adele-framework/mailer"
 	"github.com/cidekar/adele-framework/middleware"
 	"github.com/cidekar/adele-framework/mux"
@@ -14,6 +15,7 @@ type Adele struct {
 	AppName          string
 	config           config
 	Debug            bool
+	Helpers          *helpers.Helpers
 	JetViews         *jet.Set
 	Log              *logrus.Logger
 	Mail             mailer.Mail

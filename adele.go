@@ -9,6 +9,7 @@ import (
 
 	"github.com/CloudyKit/jet/v6"
 	"github.com/alexedwards/scs/v2"
+	"github.com/cidekar/adele-framework/helpers"
 	"github.com/cidekar/adele-framework/logger"
 	"github.com/cidekar/adele-framework/mailer"
 	"github.com/cidekar/adele-framework/middleware"
@@ -77,7 +78,15 @@ func (a *Adele) New(rootPath string) error {
 
 	a.Render = a.BootstrapRender()
 
+	a.Helpers = a.BootstrapHelpers()
+
 	return nil
+}
+
+func (a *Adele) BootstrapHelpers() *helpers.Helpers {
+	return &helpers.Helpers{
+		Redner: a.Render,
+	}
 }
 
 // Configure the mailer for the application by initializing mailer struct. The mailer

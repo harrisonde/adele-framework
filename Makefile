@@ -15,6 +15,8 @@ coverage:
 test\:all:
 	@go clean -testcache
 	make test:logger test:mailer test:middleware test:mux test:session
+test\:helpers:
+	@go test ./helpers
 test\:logger:
 	@go test ./logger
 test\:middleware:

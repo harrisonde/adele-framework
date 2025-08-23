@@ -9,6 +9,7 @@ import (
 
 	"github.com/CloudyKit/jet/v6"
 	"github.com/alexedwards/scs/v2"
+	"github.com/cidekar/adele-framework/database"
 	"github.com/cidekar/adele-framework/helpers"
 	"github.com/cidekar/adele-framework/logger"
 	"github.com/cidekar/adele-framework/mailer"
@@ -78,9 +79,33 @@ func (a *Adele) New(rootPath string) error {
 
 	a.Render = a.BootstrapRender()
 
+	a.BootstrapDatabase()
+
 	a.Helpers = a.BootstrapHelpers()
 
 	return nil
+}
+
+// Initializes and sets up a database connection for the application—establishes a database
+// connection during application startup and stores it in the Adele struct.
+func (a *Adele) BootstrapDatabase() {
+	db, err := database.OpenDB(os.Getenv("DATABASE_TYPE"), &database.DataSourceName{
+		Host:         Getenv("DATABASE_HOST", "localhost"),
+		Port:         Getenv("DATABASE_PORT", "5432"),
+		User:         Getenv("DATABASE_USER"),
+		Password:     Getenv("DATABASE_PASSWORD"),
+		DatabaseName: Getenv("DATABASE_NAME"),
+		SslMode:      Getenv("DATABASE_SSL_MODE"),
+	})
+
+	if err != nil {
+		a.Log.Error(err)
+		os.Exit(1)
+	}
+	a.DB = &database.Database{
+		DataType: os.Getenv("DATABASE_TYPE"),
+		Pool:     db,
+	}
 }
 
 func (a *Adele) BootstrapHelpers() *helpers.Helpers {

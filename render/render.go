@@ -98,20 +98,13 @@ func (a *Render) JetPage(w http.ResponseWriter, r *http.Request, templateName st
 
 	td = a.defaultData(td, r) // Add default data
 
-	// Now, render the templates
-	fmt.Println("=====>")
-	fmt.Println("Printer Name:", "JetViews", ", Type:", a.JetViews)
-
-	fmt.Println(fmt.Sprintf("%s.jet", templateName))
 	t, err := a.JetViews.GetTemplate(fmt.Sprintf("%s.jet", templateName))
 
 	if err != nil {
-		log.Printf(fmt.Sprintf("%s", err))
 		return err
 	}
 
 	if err = t.Execute(w, vars, td); err != nil {
-		log.Printf(fmt.Sprintf("%s", err))
 		return err
 	}
 

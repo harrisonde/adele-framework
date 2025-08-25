@@ -9,6 +9,7 @@ import (
 	"github.com/cidekar/adele-framework/middleware"
 	"github.com/cidekar/adele-framework/mux"
 	"github.com/cidekar/adele-framework/render"
+	"github.com/robfig/cron/v3"
 	"github.com/sirupsen/logrus"
 )
 
@@ -27,6 +28,7 @@ type Adele struct {
 	Render           *render.Render
 	Routes           *mux.Mux
 	RootPath         string
+	Scheduler        *cron.Cron
 	Session          *scs.SessionManager
 	Version          string
 	ViewsTemplateDir string

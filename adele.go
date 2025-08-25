@@ -23,6 +23,7 @@ import (
 	"github.com/cidekar/adele-framework/session"
 	crs "github.com/go-chi/cors"
 	"github.com/joho/godotenv"
+	"github.com/robfig/cron/v3"
 	"gopkg.in/yaml.v2"
 )
 
@@ -89,6 +90,8 @@ func (a *Adele) New(rootPath string) error {
 
 	a.Helpers = a.BootstrapHelpers()
 
+	a.BootstrapScheduler()
+
 	return nil
 }
 
@@ -114,7 +117,8 @@ func (a *Adele) BootstrapDatabase() {
 	}
 }
 
-// ...
+// Initializes the file system auto-configuration method for the framework by detecting and
+// initializes available file storage systems based on environment variables during application startup.
 func (a *Adele) BoostrapFilesystem() {
 	fileSystem := make(map[string]interface{})
 
@@ -167,6 +171,8 @@ func (a *Adele) BoostrapFilesystem() {
 	a.FileSystem = fileSystem
 }
 
+// Creates and returns a helper utilities object for the Adele framework— a collection of utility functions
+// that can be used throughout the application.
 func (a *Adele) BootstrapHelpers() *helpers.Helpers {
 	return &helpers.Helpers{
 		Redner: a.Render,
@@ -210,6 +216,12 @@ func (a *Adele) BootstrapMiddleware() {
 	}
 
 	a.middleware = myMiddleware
+}
+
+// Initializes a cron job scheduler for the Adele framework. Sets up task scheduling capabilities
+// during application startup for framework-wide access.
+func (a *Adele) BootstrapScheduler() {
+	a.Scheduler = cron.New()
 }
 
 // Configure and create the session manager by initializing a session struct, populating

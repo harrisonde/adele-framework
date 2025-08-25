@@ -17,6 +17,7 @@ type Adele struct {
 	config           config
 	DB               *database.Database
 	Debug            bool
+	FileSystem       map[string]interface{}
 	Helpers          *helpers.Helpers
 	JetViews         *jet.Set
 	Log              *logrus.Logger

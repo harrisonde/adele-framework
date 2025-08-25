@@ -17,6 +17,8 @@ test\:all:
 	make test:logger test:mailer test:middleware test:mux test:session
 test\:database:
 	@go test ./database/...
+test\:filesystem:
+	@go test ./filesystem/...
 test\:helpers:
 	@go test ./helpers
 test\:logger:

@@ -29,7 +29,7 @@ const Version = "v0.0.0"
 // to bootstrap the framework.
 func (a *Adele) New(rootPath string) error {
 
-	directories := []string{"data", "handlers", "logs", "jobs", "middleware", "migrations", "public", "resources", "resources/views", "resources/mail", "tmp", "screenshots"}
+	directories := []string{"handlers", "logs", "jobs", "middleware", "migrations", "models", "public", "resources", "resources/views", "resources/mail", "tmp", "screenshots"}
 
 	err := a.CreateDirectories(rootPath, directories)
 	if err != nil {

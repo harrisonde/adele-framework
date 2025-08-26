@@ -9,6 +9,9 @@ import (
 
 	"github.com/CloudyKit/jet/v6"
 	"github.com/alexedwards/scs/v2"
+	"github.com/cidekar/adele-framework/cache"
+	"github.com/cidekar/adele-framework/cache/badgerdriver"
+	"github.com/cidekar/adele-framework/cache/redisdriver"
 	"github.com/cidekar/adele-framework/database"
 	"github.com/cidekar/adele-framework/filesystem/miniofilesystem"
 	"github.com/cidekar/adele-framework/filesystem/s3filesystem"
@@ -91,6 +94,11 @@ func (a *Adele) New(rootPath string) error {
 	a.Helpers = a.BootstrapHelpers()
 
 	a.BootstrapScheduler()
+
+	err = a.BootstrapCache(rootPath)
+	if err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -269,23 +277,6 @@ func (a *Adele) BootstrapJetEngine() *jet.Set {
 	return views
 }
 
-// Setup and configuring a render engine- initializes a rendering system that handles
-// template rendering for web responses (HTML pages, emails, etc.). The render system
-// handles Rendering HTML templates for web pages, passing session data to templates,
-// and, managing template inheritance and layouts.
-func (a *Adele) BootstrapRender() *render.Render {
-	r := render.Render{
-		Directory: a.ViewsTemplateDir,
-		Renderer:  a.config.renderer,
-		RootPath:  a.RootPath,
-		Port:      a.config.port,
-		JetViews:  a.JetViews,
-		Session:   a.Session,
-	}
-
-	return &r
-}
-
 // Setup up and configures an HTTP router using the adele mux package. This
 // function returns an http.Handler which represents a chain of middleware
 // and eventually, the handlers for specific routes.
@@ -331,6 +322,59 @@ func (a *Adele) BootstrapMux(rootPath string) (http.Handler, error) {
 	mux.Use(a.middleware.CheckForMaintenanceMode)
 
 	return mux, nil
+}
+
+// Setup and configuring a render engine- initializes a rendering system that handles
+// template rendering for web responses (HTML pages, emails, etc.). The render system
+// handles Rendering HTML templates for web pages, passing session data to templates,
+// and, managing template inheritance and layouts.
+func (a *Adele) BootstrapRender() *render.Render {
+	r := render.Render{
+		Directory: a.ViewsTemplateDir,
+		Renderer:  a.config.renderer,
+		RootPath:  a.RootPath,
+		Port:      a.config.port,
+		JetViews:  a.JetViews,
+		Session:   a.Session,
+	}
+
+	return &r
+}
+
+// Cache initialization method that automatically detects and configures the appropriate
+// caching system during application startup based on environment variables.
+func (a *Adele) BootstrapCache(rootPath string) error {
+	if cache.UsesRedis() {
+		pool, err := redisdriver.CreateRedisPool(Getenv("REDIS_MAX_IDEL", "50"), Getenv("REDIS_MAX_ACTIVE_CONNECTIONS", "10000"), Getenv("REDIS_TIMEOUT", "240"), Getenv("REDIS_HOST", "localhost"), Getenv("REDIS_PORT", "6380"))
+		if err != nil {
+			return err
+		}
+
+		rc := redisdriver.RedisCache{
+			Conn:   pool,
+			Prefix: Getenv("REDIS_PREFIX", Getenv("APP_NAME")),
+		}
+
+		a.Cache = &rc
+
+	}
+
+	if cache.UsesBadger() {
+
+		bc := badgerdriver.BadgerCache{
+			Conn: badgerdriver.CreateBadgerPool(a.RootPath + "/resources/badger"),
+		}
+
+		a.Cache = &bc
+
+		a.Scheduler.AddFunc("@daily", func() {
+			if err := badgerdriver.BadgerCacheClean(&bc); err != nil {
+				a.Log.Errorf("Badger cache cleanup failed: %v", err)
+			}
+		})
+	}
+
+	return nil
 }
 
 // Ensure that a environment file at a specific path exists, creating it if it's missing, and returning

@@ -3,6 +3,7 @@ package adele
 import (
 	"github.com/CloudyKit/jet/v6"
 	"github.com/alexedwards/scs/v2"
+	"github.com/cidekar/adele-framework/cache"
 	"github.com/cidekar/adele-framework/database"
 	"github.com/cidekar/adele-framework/helpers"
 	"github.com/cidekar/adele-framework/mailer"
@@ -16,6 +17,7 @@ import (
 type Adele struct {
 	AppName          string
 	config           config
+	Cache            cache.Cache
 	DB               *database.Database
 	Debug            bool
 	FileSystem       map[string]interface{}

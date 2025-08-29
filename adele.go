@@ -32,6 +32,10 @@ import (
 
 const Version = "v0.0.0"
 
+// Create a global helper instance for the package— provides access to all
+// helper methods in sub-packages.
+var Helpers = &helpers.Helpers{}
+
 // Create a new instance of the Adele type using a pointer to Adele with the
 // root path of the application as a argument. The new-up is called by project adele's consuming package
 // to bootstrap the framework.
@@ -74,10 +78,10 @@ func (a *Adele) New(rootPath string) error {
 	a.Debug, _ = strconv.ParseBool(os.Getenv("DEBUG"))
 	a.RootPath = rootPath
 	a.Version = Version
-	a.ViewsTemplateDir = Getenv("VIEWS_TEMPLATE_DIR", "resources/views")
+	a.ViewsTemplateDir = Helpers.Getenv("VIEWS_TEMPLATE_DIR", "resources/views")
 	a.config = config{
 		port:        os.Getenv("PORT"),
-		renderer:    Getenv("RENDERER", "jet"),
+		renderer:    Helpers.Getenv("RENDERER", "jet"),
 		sessionType: os.Getenv("SESSION_TYPE"),
 	}
 
@@ -107,12 +111,12 @@ func (a *Adele) New(rootPath string) error {
 // connection during application startup and stores it in the Adele struct.
 func (a *Adele) BootstrapDatabase() {
 	db, err := database.OpenDB(os.Getenv("DATABASE_TYPE"), &database.DataSourceName{
-		Host:         Getenv("DATABASE_HOST", "localhost"),
-		Port:         Getenv("DATABASE_PORT", "5432"),
-		User:         Getenv("DATABASE_USER"),
-		Password:     Getenv("DATABASE_PASSWORD"),
-		DatabaseName: Getenv("DATABASE_NAME"),
-		SslMode:      Getenv("DATABASE_SSL_MODE"),
+		Host:         Helpers.Getenv("DATABASE_HOST", "localhost"),
+		Port:         Helpers.Getenv("DATABASE_PORT", "5432"),
+		User:         Helpers.Getenv("DATABASE_USER"),
+		Password:     Helpers.Getenv("DATABASE_PASSWORD"),
+		DatabaseName: Helpers.Getenv("DATABASE_NAME"),
+		SslMode:      Helpers.Getenv("DATABASE_SSL_MODE"),
 	})
 
 	if err != nil {
@@ -345,14 +349,14 @@ func (a *Adele) BootstrapRender() *render.Render {
 // caching system during application startup based on environment variables.
 func (a *Adele) BootstrapCache(rootPath string) error {
 	if cache.UsesRedis() {
-		pool, err := redisdriver.CreateRedisPool(Getenv("REDIS_MAX_IDEL", "50"), Getenv("REDIS_MAX_ACTIVE_CONNECTIONS", "10000"), Getenv("REDIS_TIMEOUT", "240"), Getenv("REDIS_HOST", "localhost"), Getenv("REDIS_PORT", "6380"))
+		pool, err := redisdriver.CreateRedisPool(Helpers.Getenv("REDIS_MAX_IDEL", "50"), Helpers.Getenv("REDIS_MAX_ACTIVE_CONNECTIONS", "10000"), Helpers.Getenv("REDIS_TIMEOUT", "240"), Helpers.Getenv("REDIS_HOST", "localhost"), Helpers.Getenv("REDIS_PORT", "6380"))
 		if err != nil {
 			return err
 		}
 
 		rc := redisdriver.RedisCache{
 			Conn:   pool,
-			Prefix: Getenv("REDIS_PREFIX", Getenv("APP_NAME")),
+			Prefix: Helpers.Getenv("REDIS_PREFIX", Helpers.Getenv("APP_NAME")),
 		}
 
 		a.Cache = &rc
@@ -380,7 +384,7 @@ func (a *Adele) BootstrapCache(rootPath string) error {
 // Ensure that a environment file at a specific path exists, creating it if it's missing, and returning
 // any errors that may arise.
 func (a *Adele) CreateEnvironmentFile(rootPath string) error {
-	err := a.CreateFileIfNotExist(fmt.Sprintf("%s/.env", rootPath))
+	err := Helpers.CreateFileIfNotExist(fmt.Sprintf("%s/.env", rootPath))
 	if err != nil {
 		return err
 	}
@@ -390,7 +394,7 @@ func (a *Adele) CreateEnvironmentFile(rootPath string) error {
 // Create all nonexistent parent directories
 func (a *Adele) CreateDirectories(rootPath string, directories []string) error {
 	for _, path := range directories {
-		err := a.CreateDirIfNotExist(rootPath + "/" + path)
+		err := Helpers.CreateDirIfNotExist(rootPath + "/" + path)
 		if err != nil {
 			return err
 		}

@@ -1,6 +1,8 @@
 package adele
 
 import (
+	"net"
+
 	"github.com/CloudyKit/jet/v6"
 	"github.com/alexedwards/scs/v2"
 	"github.com/cidekar/adele-framework/cache"
@@ -30,6 +32,7 @@ type Adele struct {
 	Render           *render.Render
 	Routes           *mux.Mux
 	RootPath         string
+	RPCListener      *net.Listener
 	Scheduler        *cron.Cron
 	Session          *scs.SessionManager
 	Version          string

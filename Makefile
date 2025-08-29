@@ -35,3 +35,10 @@ test\:session:
 	@go test ./session
 test\:render:
 	@go test ./render
+test\:rpcserver:
+	@go test ./rpcserver
+## coverage: displays test coverage
+test\:coverage:
+	@go test -cover ./...
+test\:coverage\:browser:
+	@go test -coverprofile=coverage.out ./... && go tool cover -html=coverage.out

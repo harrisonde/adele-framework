@@ -1,7 +1,6 @@
 package helpers
 
 import (
-	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -84,8 +83,7 @@ func TestHelpers_Render_Go(t *testing.T) {
 
 	middlewareHandler.ServeHTTP(w, req)
 
-	fmt.Println(w.Body)
-	if w.Code == http.StatusOK {
+	if w.Code != http.StatusOK {
 		t.Errorf("Expected 200, got %d", w.Code)
 	}
 }

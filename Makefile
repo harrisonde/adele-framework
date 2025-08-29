@@ -23,6 +23,8 @@ test\:filesystem:
 	@go test ./filesystem/...
 test\:helpers:
 	@go test ./helpers
+test\:httpserver:
+	@go test ./httpserver
 test\:logger:
 	@go test ./logger
 test\:middleware:

@@ -1,4 +1,8 @@
 
+## builds the adele command line tool
+build\:adele:
+	@go build -o ./bin/adele ./cli/adele
+
 ## test: runs all tests
 test:
 	@go test -v ./...

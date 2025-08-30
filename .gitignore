@@ -3,3 +3,4 @@
 .vscode
 **/testdata/
 coverage.out
+**/bin/

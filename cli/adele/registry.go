@@ -1,9 +1,15 @@
 package main
 
-import "fmt"
+import (
+	"fmt"
+	"os"
+	"regexp"
+)
 
 type CommandRegistry struct {
 	commands map[string]*Command
+	args     []string
+	options  []string
 }
 
 var Registry = NewCommandRegistry()
@@ -64,4 +70,55 @@ func (cr *CommandRegistry) GetCommand(name string) (*Command, bool) {
 //	}
 func (cr *CommandRegistry) GetAllCommands() map[string]*Command {
 	return cr.commands
+}
+
+func (cr *CommandRegistry) GetCurrentCmd() string {
+	cmds := cr.GetArgs()
+	if len(cmds) > 0 {
+		return cmds[0]
+	}
+
+	return ""
+}
+
+func (cr *CommandRegistry) GetOptions() []string {
+	return cr.options
+}
+
+func (cr *CommandRegistry) SetOptions(options []string) error {
+	cr.options = options
+	return nil
+}
+
+func (cr *CommandRegistry) GetArgs() []string {
+	return cr.args
+}
+
+func (cr *CommandRegistry) SetArgs(args []string) error {
+	cr.args = args
+	return nil
+}
+
+// ParseCmdArgs internal method that reads command-line arguments, starting with the program name.
+// The arguments and options are split apart and written the regiestry for use by the framework
+// registry helpers.
+func (cr *CommandRegistry) ParseCmdArgs() error {
+
+	var args []string
+	var options []string
+
+	optionPattern := regexp.MustCompile(`(^--[\w\d]*|^-[\w\d]*)`)
+	for _, v := range os.Args[1:] {
+		isOpt := optionPattern.MatchString(v)
+		if isOpt {
+			options = append(options, v)
+		} else {
+			args = append(args, v)
+		}
+	}
+
+	cr.SetArgs(args)
+	cr.SetOptions(options)
+
+	return nil
 }

@@ -30,13 +30,11 @@ func NewVersion() *Version {
 }
 
 func (c *Version) Handle() error {
-	color.Yellow("Adele")
-	color.Green("  binary:    " + adele.Version)
-	color.Green("  framework: " + adele.Version)
+	version := color.GreenString(adele.Version)
+	fmt.Println("Adele Framework", version)
 	return nil
 }
 
-// Register command on package init
 func init() {
 	if err := Registry.Register(VersionCommand); err != nil {
 		panic(fmt.Sprintf("Failed to register version command: %v", err))

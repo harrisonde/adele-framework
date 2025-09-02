@@ -75,8 +75,8 @@ func (h *Helpers) CreateDirIfNotExist(path string) error {
 //	config := UploadConfig{
 //	    MaxSize:          10 << 20, // 10MB
 //	    AllowedMimeTypes: []string{"image/jpeg", "image/png"},
-//	    TempDir:          "./tmp",
-//	    Destination:      "./uploads",
+//	    TempDir:          "storage/tmp",
+//	    Destination:      "storage/uploads",
 //	}
 //	result, err := app.UploadFile(r, "avatar", config, nil)
 //	if err != nil {

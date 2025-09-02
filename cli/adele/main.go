@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"os"
 	"reflect"
-	"regexp"
 	"strings"
 
 	"github.com/fatih/color"
@@ -32,21 +31,18 @@ var efs embed.FS
 //	./adele new myproject      // Creates new project
 //	./adele invalidcmd         // Shows "Command not found" + help table
 func main() {
+
 	args := os.Args[1:]
 
 	if len(args) > 0 {
 		if cmd, exists := Registry.GetCommand(args[0]); exists {
+			Registry.ParseCmdArgs()
 			if HasOption("--help") || HasOption("-h") {
 				PrintCommandDetails(cmd)
 				os.Exit(0)
 			} else {
 				c := &Cli{}
-				arg1, arg2, arg3, arg4, _, err := cmdValidate()
-				if err != nil {
-					color.Red("Error: %v\n", err)
-					os.Exit(0)
-				}
-				err = c.Handle(arg1, arg2, arg3, arg4)
+				err := c.Handle()
 				if err != nil {
 					color.Red("Error: %v\n", err)
 					os.Exit(0)
@@ -54,6 +50,10 @@ func main() {
 			}
 
 		} else {
+			if args[0] == "help" {
+				PrintHelpTable()
+				os.Exit(0)
+			}
 			fmt.Printf("Command '%s' not found\n\n", args[0])
 			PrintHelpTable()
 		}
@@ -71,15 +71,14 @@ func main() {
 //
 // Example:
 //
-//	Handle("new", "myproject", "", "")     // Calls NewApp handler
-//	Handle("version", "", "", "")          // Calls version handler
-func (c *Cli) Handle(arg1, arg2, arg3, arg4 string) error {
+//	Handle()     // Calls handle with internal pick from Registry to isolate command
+func (c *Cli) Handle() error {
 
-	switch arg1 {
+	switch Registry.GetCurrentCmd() {
 
 	case "new":
 		c := NewApp{}
-		err := c.Handle(arg2)
+		err := c.Handle()
 		if err != nil {
 			return err
 		}
@@ -149,7 +148,10 @@ func PrintCommandDetails(cmd *Command) {
 func PrintHelpTable() {
 	color.Yellow("Available Commands:")
 	for name, cmd := range Registry.GetAllCommands() {
-		fmt.Printf("  %-15s %s\n", name, cmd.Help)
+		coloredName := color.GreenString(name)
+		padding := 15 - len(name)
+		spaces := strings.Repeat(" ", padding)
+		fmt.Printf("  %s%s %s\n", coloredName, spaces, cmd.Help)
 	}
 }
 
@@ -213,10 +215,15 @@ func (cr *CommandRegistry) validateField(fieldName string, value reflect.Value) 
 		if len(name) < 2 {
 			return fmt.Errorf("command name must be at least 2 characters")
 		}
+	case "Description":
+		description := value.String()
+		if strings.TrimSpace(description) == "" {
+			return fmt.Errorf("command description must contain a string")
+		}
 	case "Usage":
 		usage := value.String()
-		if usage != "" && !strings.Contains(usage, "adele") {
-			return fmt.Errorf("usage should include 'adele' prefix")
+		if strings.TrimSpace(usage) == "" {
+			return fmt.Errorf("command usage must contain a string")
 		}
 	}
 	return nil
@@ -365,7 +372,8 @@ func HasOption(option string) bool {
 	// Normalize the target option (remove leading dashes)
 	targetOption := strings.TrimLeft(option, "-")
 
-	for _, arg := range os.Args[1:] {
+	for _, arg := range Registry.GetOptions() {
+		//for _, arg := range os.Args[1:] {
 		// Split on '=' to handle --flag=value format
 		flagPart := strings.Split(arg, "=")[0]
 
@@ -377,6 +385,7 @@ func HasOption(option string) bool {
 			return true
 		}
 	}
+
 	return false
 }
 
@@ -394,7 +403,7 @@ func GetOption(option string) (string, error) {
 	targetOption := strings.TrimLeft(option, "-")
 	args := os.Args[1:]
 
-	for i, arg := range args {
+	for i, arg := range Registry.GetOptions() {
 		if !strings.HasPrefix(arg, "-") {
 			continue
 		}
@@ -421,50 +430,4 @@ func GetOption(option string) (string, error) {
 	}
 
 	return "", errors.New("flag not found: " + option)
-}
-
-// cmdValidate internal method that reads command-line arguments, starting with the program name.
-// The arguments are written to a string, parsed and returned to the caller.
-func cmdValidate() (string, string, string, string, []string, error) {
-	var arg1, arg2, arg3, arg4 string
-
-	var cmdOptions []string
-
-	if len(os.Args) > 1 {
-
-		args := os.Args[1:]
-		shift := 0
-		optionPattern := "(^--[\\w\\d]{0,}|^-[\\w\\d]{0,})"
-
-		for k, v := range args {
-			isOpt, _ := regexp.MatchString(optionPattern, v)
-			if isOpt {
-				cmdOptions = append(cmdOptions, v)
-				os.Args[k+1] = ""
-				shift++
-			} else if shift > 0 {
-				shiftToPos := k - shift + 1
-				os.Args[shiftToPos] = v
-			}
-		}
-
-		arg1 = os.Args[1]
-
-		if len(os.Args) >= 3 {
-			arg2 = os.Args[2]
-		}
-
-		if len(os.Args) >= 4 {
-			arg3 = os.Args[3]
-		}
-
-		if len(os.Args) >= 5 {
-			arg4 = os.Args[4]
-		}
-
-		return arg1, arg2, arg3, arg4, cmdOptions, nil
-
-	}
-
-	return "", "", "", "", cmdOptions, errors.New("command required")
 }

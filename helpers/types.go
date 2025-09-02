@@ -3,7 +3,8 @@ package helpers
 import "github.com/cidekar/adele-framework/render"
 
 type Helpers struct {
-	Redner *render.Render
+	Redner           *render.Render
+	FileUploadConfig FileUploadConfig
 }
 
 // UploadConfig holds upload configuration

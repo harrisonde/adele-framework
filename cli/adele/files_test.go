@@ -27,11 +27,6 @@ func TestCopyDataToFile_returns_nil(t *testing.T) {
 
 	_ = os.Remove(path + "testCopyDataToFile.go")
 }
-func TestFileExists_returns_bool(t *testing.T) {
-	if fileExists(path+"dummyfile.go") == false {
-		t.Error("unable to find a file when it exists")
-	}
-}
 
 func TestFileExists(t *testing.T) {
 	// Create temporary file for testing

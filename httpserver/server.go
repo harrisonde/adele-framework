@@ -13,7 +13,7 @@ import (
 // Create a new http server for use with the adele skeleton application.
 func NewServer(adele *adele.Adele) *http.Server {
 	return &http.Server{
-		Addr:         fmt.Sprintf(":%s", adele.Helpers.Getenv("PORT", "4000")),
+		Addr:         fmt.Sprintf(":%s", adele.Helpers.Getenv("HTTP_PORT", "4000")),
 		ErrorLog:     log.New(adele.Log.WriterLevel(logrus.ErrorLevel), "", 0),
 		Handler:      adele.Routes,
 		IdleTimeout:  30 * time.Second,

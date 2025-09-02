@@ -4,3 +4,4 @@
 **/testdata/
 coverage.out
 **/bin/
+*.secrets

@@ -41,7 +41,7 @@ var Helpers = &helpers.Helpers{}
 // to bootstrap the framework.
 func (a *Adele) New(rootPath string) error {
 
-	directories := []string{"handlers", "logs", "jobs", "middleware", "migrations", "models", "public", "resources", "resources/views", "resources/mail", "tmp", "screenshots"}
+	directories := []string{"handlers", "logs", "jobs", "middleware", "migrations", "models", "public", "resources", "resources/views", "resources/mail", "storage"}
 
 	err := a.CreateDirectories(rootPath, directories)
 	if err != nil {
@@ -75,14 +75,14 @@ func (a *Adele) New(rootPath string) error {
 	}
 
 	a.Routes = muxRouter.(*mux.Mux)
-	a.Debug, _ = strconv.ParseBool(os.Getenv("DEBUG"))
+	a.Debug, _ = strconv.ParseBool(os.Getenv("APP_DEBUG"))
 	a.RootPath = rootPath
 	a.Version = Version
 	a.ViewsTemplateDir = Helpers.Getenv("VIEWS_TEMPLATE_DIR", "resources/views")
 	a.config = config{
-		port:        os.Getenv("PORT"),
+		port:        Helpers.Getenv("HTTP_PORT", "4000"),
 		renderer:    Helpers.Getenv("RENDERER", "jet"),
-		sessionType: os.Getenv("SESSION_TYPE"),
+		sessionType: Helpers.Getenv("SESSION_TYPE"),
 	}
 
 	a.BoostrapFilesystem()
@@ -186,8 +186,28 @@ func (a *Adele) BoostrapFilesystem() {
 // Creates and returns a helper utilities object for the Adele framework— a collection of utility functions
 // that can be used throughout the application.
 func (a *Adele) BootstrapHelpers() *helpers.Helpers {
+
+	// Define the file types allowd by the system and add any provided by the application developer.
+	mimeTypes := []string{"image/gif", "image/jpeg", "image/png", "application/pdf"}
+	exploded := strings.Split(Helpers.Getenv("FILE_TYPES_ALLOWED"), "")
+	mimeTypes = append(mimeTypes, exploded...)
+
+	// Max file upload size is set to 10 mb
+	var maxUploadSize int64
+	if max, err := strconv.Atoi(Helpers.Getenv("FILE_MAX_UPLOAD_SIZE")); err != nil {
+		maxUploadSize = 10 << 20
+	} else {
+		maxUploadSize = int64(max)
+	}
+
 	return &helpers.Helpers{
 		Redner: a.Render,
+		FileUploadConfig: helpers.FileUploadConfig{
+			MaxSize:          maxUploadSize,
+			AllowedMimeTypes: mimeTypes,
+			TempDir:          "/storage/tmp",
+			Destination:      "/storage/uploads",
+		},
 	}
 }
 
@@ -195,7 +215,7 @@ func (a *Adele) BootstrapHelpers() *helpers.Helpers {
 // values are populated by the environemnt variables parsed from the .env file
 // at the root of the application.
 func (a *Adele) BoootstrapMailer() mailer.Mail {
-	port, _ := strconv.Atoi(os.Getenv("SMTP_PORT"))
+	port, _ := strconv.Atoi(Helpers.Getenv("SMTP_PORT", "1025"))
 	m := mailer.Mail{
 		Domain:      os.Getenv("MAIL_DOMAIN"),
 		Templates:   a.RootPath + "/resources/mail",
@@ -204,8 +224,8 @@ func (a *Adele) BoootstrapMailer() mailer.Mail {
 		Username:    os.Getenv("SMTP_USERNAME"),
 		Password:    os.Getenv("SMTP_PASSWORD"),
 		Encryption:  os.Getenv("SMTP_ENCRYPTION"),
-		FromName:    os.Getenv("FROM_NAME"),
-		FromAddress: os.Getenv("FROM_ADDRESS"),
+		FromName:    os.Getenv("MAILER_FROM_NAME"),
+		FromAddress: os.Getenv("MAILER_FROM_ADDRESS"),
 		Jobs:        make(chan mailer.Message, 20),
 		Results:     make(chan mailer.Result, 20),
 		API:         os.Getenv("MAILER_API"),
@@ -241,11 +261,11 @@ func (a *Adele) BootstrapScheduler() {
 func (a *Adele) BootstrapSessionManager() (*scs.SessionManager, error) {
 
 	session := session.Session{
-		CookieDomain:   os.Getenv("COOKIE_DOMAIN"),
-		CookieLifetime: os.Getenv("COOKIE_LIFETIME"),
-		CookieName:     os.Getenv("COOKIE_NAME"),
-		CookiePersist:  os.Getenv("COOKIE_PERSIST"),
-		CookieSecure:   os.Getenv("COOKIE_SECURE"),
+		CookieDomain:   Helpers.Getenv("COOKIE_DOMAIN", "localhost"),
+		CookieLifetime: Helpers.Getenv("COOKIE_LIFETIME", "1"),
+		CookieName:     Helpers.Getenv("COOKIE_NAME", "adele"),
+		CookiePersist:  Helpers.Getenv("COOKIE_PERSIST", "true"),
+		CookieSecure:   Helpers.Getenv("COOKIE_SECURE", "false"),
 	}
 
 	switch strings.ToLower(os.Getenv("SESSION_TYPE")) {
@@ -314,8 +334,7 @@ func (a *Adele) BootstrapMux(rootPath string) (http.Handler, error) {
 	}
 	mux.Use(crs.Handler(corsOptions))
 
-	debugMode, _ := strconv.ParseBool(os.Getenv("DEBUG"))
-	if debugMode {
+	if a.Debug {
 		mux.Use(logger.HttpRequesLogger(logger.CreateLogger()))
 		mux.Use(a.middleware.RecovererWithDebug)
 	} else {

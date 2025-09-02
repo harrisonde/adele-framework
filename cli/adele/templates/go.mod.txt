@@ -1,0 +1,7 @@
+module ${APP_MODULE_PATH}
+
+go 1.23
+
+require (
+	github.com/cidekar/adele-framework ${ADELE_PACKAGE_VERSION}
+)

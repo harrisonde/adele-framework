@@ -1,0 +1,64 @@
+version: 1
+env:
+  - GOSUMDB=off
+before:
+  hooks:
+    - go mod tidy
+    - go mod download
+builds:
+  - id: adele-lin-win
+    binary: adele
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+    main: ./cli/adele
+  - id: adele
+    binary: adele
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - darwin
+    main: ./cli/adele
+    hooks:
+      post:
+        - cmd: .tmp/quill/quill sign-and-notarize "{{ .Path }}" --dry-run={{ .IsSnapshot }} --ad-hoc={{ .IsSnapshot }} -vv
+          env:
+            - QUILL_LOG_FILE=/tmp/quill-{{ .Target }}.log
+checksum:
+  name_template: "{{ .ProjectName }}_checksums.txt"
+  algorithm: sha256
+release:
+  mode: append
+  header: |
+    ## Adele Framework ({{ .Date }})
+    Welcome to this new framework release!
+  footer: |
+    #### Go build something awesome.
+
+    Those were the changes on {{ .Tag }}!
+archives:
+  - id: adele
+    builds:
+      - adele
+      - adele-lin-win
+    format: binary
+    name_template: >-
+      adele_
+      {{- tolower .Os }}_
+      {{- if eq .Arch "amd64" }}x86_64
+      {{- else if eq .Arch "386" }}i386
+      {{- else }}{{ .Arch }}{{ end }}
+      {{- if .Arm }}v{{ .Arm }}{{ end }}
+  - id: cli
+    builds:
+      - cli
+      - cli-lin-win
+    format: binary
+    name_template: >-
+      cli_
+      {{- tolower .Os }}_
+      {{- if eq .Arch "amd64" }}x86_64
+      {{- else if eq .Arch "386" }}i386
+      {{- else }}{{ .Arch }}{{ end }}
+      {{- if .Arm }}v{{ .Arm }}{{ end }}

@@ -1,0 +1,143 @@
+# .github/workflows/release.yml
+name: goreleaser
+
+on:
+  push:
+    # run only against tags
+    tags:
+      - "*"
+
+jobs:
+  release:
+    runs-on: ["macos-arm64"]
+    steps:
+      - name: checkout the repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: add go (production)
+        uses: actions/setup-go@v5
+        if: ${{ !env.ACT }}
+        with:
+          go-version: '1.21'
+
+      - name: add go (testing)
+        if: ${{ env.ACT }}
+        run: |
+          echo "Checking for Go installation..."
+
+          if command -v go &> /dev/null; then
+            echo "✅ Go already available: $(go version)"
+          else
+            echo "Installing Go without package manager..."
+
+            # Create directory in user space (no sudo needed)
+            mkdir -p $HOME/go-install
+            cd $HOME/go-install
+
+            # Download Go using curl (more likely to be available than wget)
+            if command -v curl &> /dev/null; then
+              echo "Downloading Go 1.21.5..."
+              curl -sL https://go.dev/dl/go1.21.5.linux-amd64.tar.gz -o go.tar.gz
+
+              # Extract to home directory (no root needed)
+              tar -xzf go.tar.gz
+
+              # Set up paths
+              export GOROOT="$HOME/go-install/go"
+              export PATH="$GOROOT/bin:$PATH"
+              echo "$GOROOT/bin" >> $GITHUB_PATH
+
+              echo "✅ Go installed to: $GOROOT"
+            else
+              echo "❌ curl not available, cannot install Go"
+              exit 1
+            fi
+          fi
+
+          # Final verification
+          echo "Go version check:"
+          go version
+
+      - name: write version tag
+        if: ${{ !env.ACT }}
+        run: go run .github/workflows/semantic-release-write-version.go
+
+      - name: Write version tag (testing)
+        if: ${{ env.ACT }}
+        run: |
+          echo "🎭 MOCK: Would run version script"
+          echo "go run .github/workflows/semantic-release-write-version.go"
+          echo "✅ Version tag writing simulated"
+
+      - name: commit source code to version control (testing)
+        if: ${{ env.ACT }}
+        run: |
+          echo "⚙️ Setup git configuration..."
+          git config --global user.name "continuous integration"
+          git config --global user.email "no-reply@cidekar.com"
+
+          # Create a temporary ci branch
+          git checkout -b ci/${{ github.ref_name }} 2>/dev/null || git checkout ci/${{ github.ref_name }}
+          git checkout -b "ci/$(git branch --show-current)"
+
+          # Show what would be committed
+          echo "📝 Files that would be committed:"
+          git status --porcelain
+
+          # Test commit (but don't push)
+          if git diff --cached --quiet && git diff --quiet; then
+            echo "✅ No changes to commit"
+          else
+            git add -A
+            git commit -m "ACT TEST: continuous integration build artifacts ${{env.GITHUB_REF_NAME}}" --dry-run
+            echo "✅ Git commit tested successfully (dry-run)"
+          fi
+
+          # Clean up
+          # git branch -D ci/${{ github.ref_name }} 2>/dev/null || true
+
+      - name: commit source code (production)
+        if: ${{ !env.ACT }}
+        run: |
+          git config --global user.name "continuous integration"
+          git config --global user.email "no-reply@cidekar.com"
+          git checkout -b main
+          git commit -a -m "continuous integration build artifacts ${{env.GITHUB_REF_NAME}}"
+          git push --set-upstream origin main
+
+      - name: install quill
+        run: curl -sSfL https://raw.githubusercontent.com/anchore/quill/main/install.sh | sh -s -- -b .tmp/quill v0.4.1
+
+      - name: checkout branch
+        run: |
+          echo "⚙️ Setup git configuration..."
+          git config --global user.name "continuous integration"
+          git config --global user.email "no-reply@cidekar.com"
+
+          # Create a temporary ci branch
+          git checkout -b ci/${{ github.ref_name }} 2>/dev/null || git checkout ci/${{ github.ref_name }}
+
+      - name: run goreleaser
+        uses: goreleaser/goreleaser-action@v5
+        with:
+          distribution: goreleaser
+          version: latest
+          args: release --clean
+        env:
+          #GORELEASER_FORCE_TOKEN: gitea
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Certificate Type: Developer ID Application
+          # Base64 encoded contents or path to signing private key and certificate from Apple (this is in the form of a ".p12" file)
+          QUILL_SIGN_P12: ${{ secrets.QUILL_SIGN_P12 }}
+          QUILL_SIGN_PASSWORD: ${{ secrets.QUILL_SIGN_PASSWORD }}
+          # App store connect team API Key with App Manager scope
+          # The .p8 key file path or its base64'd contents.
+          QUILL_NOTARY_KEY: ${{ secrets.QUILL_NOTARY_KEY }}
+          # The issuer ID.
+          # Its the UUID you see when creating the App Store Connect key.
+          QUILL_NOTARY_KEY_ID: ${{ secrets.QUILL_NOTARY_KEY_ID }}
+          # The issuer ID.
+          # Its the UUID you see when creating the App Store Connect key.
+          QUILL_NOTARY_ISSUER: ${{ secrets.QUILL_NOTARY_ISSUER }}

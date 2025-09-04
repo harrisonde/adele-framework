@@ -1,0 +1,13 @@
+# Use medium runner image
+-P macos-latest=golang:1.23
+-P macos-arm64=golang:1.23
+-P macos-amd64=golang:1.23
+-P ubuntu-latest=golang:1.23
+
+--env GITHUB_REF_NAME=ci/candidate-$(date +%Y%m%d.%H%M)
+--env GITHUB_REF_TAG=$(echo "1.0.0-ci.$(date +%Y%m%d.%H%M)+sha.$(git rev-parse --short HEAD)")
+
+
+# Set secrets
+--secret-file .act.secrets
+--container-options --tmpfs /tmp:size=2G --user root --privileged --env GOCACHE=/github/workspace/.gocache --env GOTMPDIR=/github/workspace/.gotmp

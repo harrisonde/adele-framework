@@ -73,38 +73,22 @@ jobs:
       - name: write version tag
         run: go run .github/workflows/semantic-release-write-version.go
 
-      # - name: commit source code (testing)
-      #   if: ${{ env.ACT }}
-      #   run: |
-      #     echo "⚙️ Setup git configuration..."
-      #     git config --global user.name "continuous integration"
-      #     git config --global user.email "no-reply@cidekar.com"
-
-      #     # Create a temporary ci branch
-      #     git checkout -b ci/${{ github.ref_name }} 2>/dev/null || git checkout ci/${{ github.ref_name }}
-      #     git branch --show-current
-
-      #     # Show what would be committed
-      #     echo "📝 Files that would be committed:"
-      #     git status --porcelain
-
-      #     # Test commit (but don't push)
-      #     if git diff --cached --quiet && git diff --quiet; then
-      #       echo "✅ No changes to commit"
-      #     else
-      #       git add -A
-      #       git commit -m "ACT TEST: continuous integration build artifacts ${{env.GITHUB_REF_NAME}}" --dry-run
-      #       echo "✅ Git commit tested successfully (dry-run)"
-      #     fi
+      - name: configure act for github (testing)
+        if: ${{ env.ACT }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Setup SSH
+          mkdir -p ~/.ssh
+          ssh-keyscan -H github.com >> ~/.ssh/known_hosts
+          git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/username/repo.git
 
       - name: commit source code
         run: |
           if git diff --cached --quiet && git diff --quiet; then
             echo "✅ No changes to commit"
           else
-            # Setup SSH
-            mkdir -p ~/.ssh
-            ssh-keyscan -H github.com >> ~/.ssh/known_hosts
+
             git config --global user.name "continuous integration"
             git config --global user.email "no-reply@cidekar.com"
             git checkout -b ${{env.GITHUB_REF_NAME}} 2>/dev/null || git checkout ${{env.GITHUB_REF_NAME}}

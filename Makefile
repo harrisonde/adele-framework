@@ -196,28 +196,28 @@ release\:verify:
 	@echo "The next package release will be tagged with $(PACKAGE_PUBLICATION_TAG_NEXT)"
 
 	# Check if working directory is clean
-# 	@if ! git diff-index --quiet HEAD --; then \
-# 		echo "Error: working directory has uncommitted changes"; \
-# 		exit 1; \
-# 	fi
+	@if ! git diff-index --quiet HEAD --; then \
+		echo "Error: working directory has uncommitted changes"; \
+		exit 1; \
+	fi
 
-# 	# Check if we're on the expected branch
-# 	CURRENT_BRANCH=$$(git branch --show-current); \
-# 	if [[ ! "$$CURRENT_BRANCH" =~ ^(main|release/.*|ci/.*|hotfix/.*)$$ ]]; then \
-# 		echo "Error: Branch '$$CURRENT_BRANCH' not allowed. Must be main, ci/*, release/*, or hotfix/*"; \
-# 		exit 1; \
-# 	fi
+	# Check if we're on the expected branch
+	CURRENT_BRANCH=$$(git branch --show-current); \
+	if [[ ! "$$CURRENT_BRANCH" =~ ^(main|release/.*|ci/.*|hotfix/.*)$$ ]]; then \
+		echo "Error: Branch '$$CURRENT_BRANCH' not allowed. Must be main, ci/*, release/*, or hotfix/*"; \
+		exit 1; \
+	fi
 
-# 	@read -p "Do you wish to proceed with the release? [y/N] " ans && ans=$${ans:-N} ; \
-# 	if [ $${ans} = y ] || [ $${ans} = Y ]; then \
-# 		echo "Creating and pushing tag: $$PACKAGE_PUBLICATION_TAG_NEXT"; \
-# 		git tag $$PACKAGE_PUBLICATION_TAG_NEXT; \
-# 		git push origin $$PACKAGE_PUBLICATION_TAG_NEXT; \
-# 		echo "✓ Release $$PACKAGE_PUBLICATION_TAG_NEXT created successfully"; \
-# 	else \
-# 		echo "Release cancelled"; \
-# 		exit 1; \
-# 	fi
+	@read -p "Do you wish to proceed with the release? [y/N] " ans && ans=$${ans:-N} ; \
+	if [ $${ans} = y ] || [ $${ans} = Y ]; then \
+		echo "Creating and pushing tag: $$PACKAGE_PUBLICATION_TAG_NEXT"; \
+		git tag $$PACKAGE_PUBLICATION_TAG_NEXT; \
+		git push origin $$PACKAGE_PUBLICATION_TAG_NEXT; \
+		echo "✓ Release $$PACKAGE_PUBLICATION_TAG_NEXT created successfully"; \
+	else \
+		echo "Release cancelled"; \
+		exit 1; \
+	fi
 
 .SILENT:
 release\:pull:

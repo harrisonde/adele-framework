@@ -24,7 +24,7 @@ func main() {
 
 	body := string(adele)
 	regx := regexp.MustCompile(`const Version = "(v.*)"`)
-	raw := regx.ReplaceAllString(body, "const Version = \""+os.Getenv("GITHUB_REF_NAME")+"\"")
+	raw := regx.ReplaceAllString(body, "const Version = \""+os.Getenv("GITHUB_REF_TAG")+"\"")
 
 	err = ioutil.WriteFile(file, []byte(raw), 0644)
 	if err != nil {

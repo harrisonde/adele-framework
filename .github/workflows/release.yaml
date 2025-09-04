@@ -71,7 +71,12 @@ jobs:
           chmod -R 777 /github/workspace/.gocache /github/workspace/.gotmp
 
       - name: write version tag
-        run: go run .github/workflows/semantic-release-write-version.go
+        run: |
+          GITHUB_REF_TAG=${{env.GITHUB_REF_TAG}} go run .github/workflows/semantic-release-write-version.go
+          cat adele.go | grep  "const Version*"
+          echo "✅ Version tag written to code"
+        env:
+          GITHUB_REF_TAG: ${{env.GITHUB_REF_TAG}}
 
       - name: configure act for github (testing)
         if: ${{ env.ACT }}
@@ -81,9 +86,19 @@ jobs:
           # Setup SSH
           mkdir -p ~/.ssh
           ssh-keyscan -H github.com >> ~/.ssh/known_hosts
+          # Git configuration
           git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{secrets.GITHUB_USER}}/adele-framework.git
+          git config --global user.name "continuous integration"
+          git config --global user.email "no-reply@cidekar.com"
+          git checkout -b ${{env.GITHUB_REF_NAME}} 2>/dev/null || git checkout ${{env.GITHUB_REF_NAME}}
+          git commit -a -m "continuous integration build artifacts ${{env.GITHUB_REF_NAME}}"
+          git push --set-upstream origin ${{env.GITHUB_REF_NAME}}
+          # Automate tag
+          git tag ${{env.GITHUB_REF_TAG}}
+          git push --set-upstream origin ${{env.GITHUB_REF_NAME}}
 
       - name: commit source code
+        if: ${{ !env.ACT }}
         run: |
           if git diff --cached --quiet && git diff --quiet; then
             echo "✅ No changes to commit"
@@ -117,7 +132,7 @@ jobs:
           else
             echo "✅ GoReleaser already available"
           fi
-          goreleaser release --clean
+          goreleaser release --clean --skip-validate
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           # Certificate Type: Developer ID Application

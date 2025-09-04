@@ -31,12 +31,53 @@ checksum:
 release:
   mode: append
   header: |
-    ## Adele Framework ({{ .Date }})
-    Welcome to this new framework release!
-  footer: |
-    #### Go build something awesome.
+    ### 👋 Meet Adele
+    Adele is a powerful web application framework written in Go. Our framework provides a jumping-off-point for creating a web application without having to write wiring code. Once installed, you can focus on creating your application.
 
+    ### 🔋 Batteries Included
+    Adele ships with common web development features consumed by most modern web applications. You can get started building your application immediately and avoid many of the well-known development pitfalls.
+
+    ### ⏲️ Quick Start
+    #### 💾 Installation
+    **Option 1: Download Binary (Recommended)**
+    1. 🌐 Download the Adele binary from the [GitHub releases page](https://github.com/harrisonde/adele-framework/releases)
+    2. 🪂 Extract the archive for your OS/architecture
+    3. 🛣️ Move the binary to a directory in your PATH:
+      ```sh
+      # macOS/Linux
+      sudo mv adele /usr/local/bin/
+
+      # Or add to your PATH
+      export PATH=$PATH:/path/to/adele
+      ```
+    4. Verify Installation:
+      ```sh
+      # Print the version of Adele installed on your system
+      adele version
+      ```
+    #### 🎬 Create Your First Project
+    1. 🆕 Generate a new project:
+      ```sh
+      # Create a new project
+      adele new myproject
+
+      # Change to /myproject
+      cd myproject
+      ```
+    2. 🏃🏽‍➡️ Run your application:
+      ```sh
+        # Use the make start command to build and run your application
+        make start
+
+        # Or build the application
+        go build -o myproject .
+
+        # And start your new application
+        ./myproject
+      ```
+  footer: |
     Those were the changes on {{ .Tag }}!
+    📅 {{ .Date }}
 archives:
   - id: adele
     builds:

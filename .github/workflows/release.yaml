@@ -97,19 +97,19 @@ jobs:
       #       echo "✅ Git commit tested successfully (dry-run)"
       #     fi
 
-      - name: commit source code (production)
-        # if: ${{ !env.ACT }}
+      - name: commit source code
         run: |
-          if git diff --cached --quiet && git diff --quiet; then
-            echo "✅ No changes to commit"
-          else
-            git config --global user.name "continuous integration"
-            git config --global user.email "no-reply@cidekar.com"
-            git checkout -b ${{env.GITHUB_REF_NAME}}"
-            git commit -a -m "continuous integration build artifacts ${{env.GITHUB_REF_NAME}}"
-            git push --set-upstream origin ${{env.GITHUB_REF_NAME}}
-            echo "✅ Git commit completed successfully"
-          fi
+          env | sort
+          # if git diff --cached --quiet && git diff --quiet; then
+          #   echo "✅ No changes to commit"
+          # else
+          #   git config --global user.name "continuous integration"
+          #   git config --global user.email "no-reply@cidekar.com"
+          #   git checkout -b ${{env.GITHUB_REF_NAME}}
+          #   git commit -a -m "continuous integration build artifacts ${{env.GITHUB_REF_NAME}}"
+          #   git push --set-upstream origin ${{env.GITHUB_REF_NAME}}
+          #   echo "✅ Git commit completed successfully"
+          # fi
 
       - name: install quill
         run: curl -sSfL https://raw.githubusercontent.com/anchore/quill/main/install.sh | sh -s -- -b .tmp/quill v0.4.1

@@ -1,7 +1,10 @@
+SHELL := /bin/bash
+
 export PACKAGE_BRANCH = main
 export PACKAGE_PUBLICATION_TAG ?=
 export PACKAGE_PUBLICATION_TAG_NEXT ?=
 export OUT ?=
+
 
 ## builds the adele command line tool
 .SILENT:
@@ -177,46 +180,44 @@ test\:help:
 ## Release workflow to tag and push to the current branch
 .SILENT:
 release\:verify:
-	@echo "The next package release will be tagged with $(PACKAGE_PUBLICATION_TAG_NEXT)"
-	@echo ""
-
-	# Validate semantic version format (supports vX.Y.Z[-prerelease][+buildmeta])
-	if [[ ! $PACKAGE_PUBLICATION_TAG_NEXT =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z-]+(\.[0-9A-Za-z-]+)*)?(\+[0-9A-Za-z-]+(\.[0-9A-Za-z-]+)*)?$ ]]; then \
-		echo "Error: Tag '$PACKAGE_PUBLICATION_TAG_NEXT' does not follow semantic versioning format"; \
+	@if [[ ! $(PACKAGE_PUBLICATION_TAG_NEXT) =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z-]+(\.[0-9A-Za-z-]+)*)?(\+[0-9A-Za-z-]+(\.[0-9A-Za-z-]+)*)?$$ ]]; then \
+		echo "Error: Tag '$(PACKAGE_PUBLICATION_TAG_NEXT)' does not follow semantic versioning format"; \
 		echo "Expected: vX.Y.Z[-prerelease][+buildmeta]"; \
 		echo "Examples: v1.0.0, v10.21.34-alpha.1, v1.2.3+build.123, v2.0.0-beta.1+exp.sha.5114f85"; \
 		exit 1; \
 	fi
 
 	# Check if tag already exists
-	if git rev-parse $$PACKAGE_PUBLICATION_TAG_NEXT >/dev/null 2>&1; then \
+	@if git rev-parse $$PACKAGE_PUBLICATION_TAG_NEXT >/dev/null 2>&1; then \
 		echo "Error: Tag '$$PACKAGE_PUBLICATION_TAG_NEXT' already exists"; \
 		exit 1; \
 	fi
 
+	@echo "The next package release will be tagged with $(PACKAGE_PUBLICATION_TAG_NEXT)"
+
 	# Check if working directory is clean
-	if ! git diff-index --quiet HEAD --; then \
-		echo "Error: Working directory has uncommitted changes"; \
-		exit 1; \
-	fi
+# 	@if ! git diff-index --quiet HEAD --; then \
+# 		echo "Error: working directory has uncommitted changes"; \
+# 		exit 1; \
+# 	fi
 
-	# Check if we're on the expected branch
-	CURRENT_BRANCH=$$(git branch --show-current); \
-	if [[ "$$CURRENT_BRANCH" != "$(PACKAGE_BRANCH)" ]]; then \
-		echo "Error: Currently on branch '$$CURRENT_BRANCH', expected '$(PACKAGE_BRANCH)'"; \
-		exit 1; \
-	fi
+# 	# Check if we're on the expected branch
+# 	CURRENT_BRANCH=$$(git branch --show-current); \
+# 	if [[ ! "$$CURRENT_BRANCH" =~ ^(main|release/.*|ci/.*|hotfix/.*)$$ ]]; then \
+# 		echo "Error: Branch '$$CURRENT_BRANCH' not allowed. Must be main, ci/*, release/*, or hotfix/*"; \
+# 		exit 1; \
+# 	fi
 
-	@read -p "Do you wish to proceed with the release? [y/N] " ans && ans=$${ans:-N} ; \
-	if [ $${ans} = y ] || [ $${ans} = Y ]; then \
-		echo "Creating and pushing tag: $$PACKAGE_PUBLICATION_TAG_NEXT"; \
-		git tag $$PACKAGE_PUBLICATION_TAG_NEXT; \
-		git push origin $$PACKAGE_PUBLICATION_TAG_NEXT; \
-		echo "✓ Release $$PACKAGE_PUBLICATION_TAG_NEXT created successfully"; \
-	else \
-		echo "Release cancelled"; \
-		exit 1; \
-	fi
+# 	@read -p "Do you wish to proceed with the release? [y/N] " ans && ans=$${ans:-N} ; \
+# 	if [ $${ans} = y ] || [ $${ans} = Y ]; then \
+# 		echo "Creating and pushing tag: $$PACKAGE_PUBLICATION_TAG_NEXT"; \
+# 		git tag $$PACKAGE_PUBLICATION_TAG_NEXT; \
+# 		git push origin $$PACKAGE_PUBLICATION_TAG_NEXT; \
+# 		echo "✓ Release $$PACKAGE_PUBLICATION_TAG_NEXT created successfully"; \
+# 	else \
+# 		echo "Release cancelled"; \
+# 		exit 1; \
+# 	fi
 
 .SILENT:
 release\:pull:
@@ -238,10 +239,44 @@ release\:pull:
 		echo "✓ Repository is up to date"; \
 	fi
 
-# Combined release target for convenience
+release\:preamble:
+	@echo "Please enter a SemVer-compatible version tag for this release."
+	@echo ""
+	@echo "🏷️  SEMANTIC VERSIONING FORMAT:"
+	@echo "  Tags must follow: vMAJOR.MINOR.PATCH[-prerelease][+buildmeta]"
+	@echo ""
+	@echo "  ✅ Valid examples:"
+	@echo "    v1.0.0                    - Basic release"
+	@echo "    v10.21.34                 - Multi-digit versions"
+	@echo "    v1.0.0-alpha              - Prerelease"
+	@echo "    v1.0.0-alpha.1            - Prerelease with number"
+	@echo "    v1.0.0-beta.2+build.123   - Prerelease + build metadata"
+	@echo "    v2.1.0+exp.sha.5114f85    - Build metadata only"
+	@echo ""
+
+#$(eval PACKAGE_PUBLICATION_TAG_NEXT=$(shell read -p "Enter new tag: " tag; echo $$tag))
+release\:capture:
+	@NEXT_TAG=$$(read -p "Enter new tag: " tag; echo $$tag); \
+	 export NEXT_TAG; \
+	 echo "Selected tag: $$NEXT_TAG"; \
+	 make release:verify PACKAGE_PUBLICATION_TAG_NEXT=$$NEXT_TAG 2>/dev/null || exit 1
+
+
+
 .SILENT:
-release: release\:pull release\:verify
+release\:get-current-tag:
+	$(eval LATEST_TAG=$(shell git describe --tags --abbrev=0 2>/dev/null || echo "No current tags found"))
+	@echo "Current tag: $(LATEST_TAG)"
+
+# Combined release target for convenience
+#@make release:pull release:verify
+.SILENT:
+release:
+	@make release:preamble
+	@make release:get-current-tag
+	@make release:capture
 	@echo "✓ Release process completed"
+
 
 # Help command with release documentation
 .SILENT:

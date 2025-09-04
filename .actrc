@@ -5,4 +5,4 @@
 -P ubuntu-latest=golang:1.23
 # Set secrets
 --secret-file .act.secrets
---container-options --tmpfs /tmp:size=2G
+--container-options --tmpfs /tmp:size=2G --user root --privileged --env GOCACHE=/github/workspace/.gocache --env GOTMPDIR=/github/workspace/.gotmp

@@ -1,8 +1,8 @@
 version: 1
 before:
   hooks:
-    - go mod tidy
-    - go mod download
+    - sh -c 'export GOSUMDB=sum.golang.org && export GOPROXY=https://proxy.golang.org,direct && go mod tidy'
+    - sh -c 'export GOSUMDB=sum.golang.org && export GOPROXY=https://proxy.golang.org,direct && go mod download'
 env:
   - GOSUMDB=sum.golang.org
   - GOPROXY=https://proxy.golang.org,direct

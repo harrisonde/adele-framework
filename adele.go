@@ -30,7 +30,7 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-const Version = "v0.0.12rc"
+const Version = "v0.0.13rc"
 
 // Create a global helper instance for the package— provides access to all
 // helper methods in sub-packages.

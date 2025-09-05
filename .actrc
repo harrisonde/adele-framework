@@ -8,6 +8,9 @@
 --env GITHUB_REF_NAME=release/v0.0.1
 --env GITHUB_REF=v0.0.1
 --env GITHUB_ACTOR=harrisonde
+--env RUNNER_TOOL_CACHE=/tmp/runner-cache
+--env RUNNER_TEMP=/tmp/runner-temp
+--env RUNNER_WORKSPACE=/tmp/runner-workspace
 
 --secret-file .act.secrets
 

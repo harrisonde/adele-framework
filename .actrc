@@ -1,0 +1,17 @@
+# Use medium runner image
+-P macos-latest=golang:1.23
+-P macos-arm64=golang:1.23
+-P macos-amd64=golang:1.23
+-P ubuntu-latest=golang:1.23
+
+# Git reference (branch or tag) that triggered the workflow run.
+--env GITHUB_REF_NAME=release/v0.0.1
+--env GITHUB_REF=v0.0.1
+--env GITHUB_ACTOR=harrisonde
+--env RUNNER_TOOL_CACHE=/tmp/runner-cache
+--env RUNNER_TEMP=/tmp/runner-temp
+--env RUNNER_WORKSPACE=/tmp/runner-workspace
+
+--secret-file .act.secrets
+
+--container-options --tmpfs /tmp:size=2G --user root --privileged --env GOCACHE=/github/workspace/.gocache --env GOTMPDIR=/github/workspace/.gotmp

@@ -1,0 +1,9 @@
+.act.env
+.DS_Store
+.idea
+.vscode
+**/bin/
+*.secrets
+**/testdata/
+coverage.out
+/dist

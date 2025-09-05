@@ -8,50 +8,90 @@ jobs:
   release:
     runs-on: ["self-hosted", "macOS", "ARM64", "cidekar", "macos-arm64"]
     steps:
-
-      - name: install node.js manually
-        run: |
-          # Check if Node.js is already available
-          if ! command -v node &> /dev/null; then
-            echo "Installing Node.js..."
-            # Update package list
-            apt-get update -qq
-            apt-get install -y curl sudo wget gnupg
-
-            # Install Node.js LTS
-            curl -fsSL https://deb.nodesource.com/setup_lts.x | bash -
-            apt-get install -y nodejs
-
-            # Add to PATH
-            echo "/usr/bin" >> $GITHUB_PATH
-          fi
-
-          # Verify installation
-          echo "Node.js version: $(node --version)"
-          echo "npm version: $(npm --version)"
-
       - name: install github CLI
         run: |
-          # Check if gh is already installed
-          if ! command -v gh &> /dev/null; then
-            echo "Installing GitHub CLI..."
-
-            # Update package list
-            apt-get update -qq
-            apt-get install -y curl wget gnupg
-
-            # Add GitHub CLI repository
-            curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg
-            chmod go+r /usr/share/keyrings/githubcli-archive-keyring.gpg
-            echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | tee /etc/apt/sources.list.d/github-cli.list > /dev/null
-
-            # Install GitHub CLI
-            apt-get update -qq
-            apt-get install -y gh
+          # Check if already installed
+          if command -v gh &> /dev/null; then
+            echo "GitHub CLI already available: $(gh --version)"
+            exit 0
           fi
 
+          echo "Installing GitHub CLI via direct download..."
+
+          # Detect platform and architecture
+          OS=$(uname -s | tr '[:upper:]' '[:lower:]')
+          ARCH=$(uname -m)
+
+          # Map architecture names to GitHub CLI conventions
+          case $ARCH in
+            x86_64) GH_ARCH="amd64" ;;
+            aarch64) GH_ARCH="arm64" ;;
+            arm64) GH_ARCH="arm64" ;;
+            *) echo "Unsupported architecture: $ARCH"; exit 1 ;;
+          esac
+
+          # Map OS names to GitHub CLI conventions
+          case $OS in
+            linux) GH_OS="linux" ;;
+            darwin) GH_OS="macOS" ;;
+            *) echo "Unsupported OS: $OS"; exit 1 ;;
+          esac
+
+          # Set version and filename
+          GH_VERSION="2.40.1"
+          FILENAME="gh_${GH_VERSION}_${GH_OS}_${GH_ARCH}.tar.gz"
+          DOWNLOAD_URL="https://github.com/cli/cli/releases/download/v${GH_VERSION}/${FILENAME}"
+
+          echo "Downloading: $DOWNLOAD_URL"
+
+          # Create temp directory
+          TEMP_DIR=$(mktemp -d)
+          cd "$TEMP_DIR"
+
+          # Download and extract
+          curl -fsSL "$DOWNLOAD_URL" -o gh.tar.gz || {
+            echo "Failed to download GitHub CLI"
+            exit 1
+          }
+
+          tar -xzf gh.tar.gz || {
+            echo "Failed to extract GitHub CLI"
+            exit 1
+          }
+
+          # Find the binary and install it
+          EXTRACTED_DIR="gh_${GH_VERSION}_${GH_OS}_${GH_ARCH}"
+
+          # Try to install to /usr/local/bin, fallback to user bin
+          if [ -w /usr/local/bin ] 2>/dev/null; then
+            cp "${EXTRACTED_DIR}/bin/gh" /usr/local/bin/gh
+            chmod +x /usr/local/bin/gh
+            echo "Installed to /usr/local/bin/gh"
+          elif [ -w /usr/bin ] 2>/dev/null; then
+            cp "${EXTRACTED_DIR}/bin/gh" /usr/bin/gh
+            chmod +x /usr/bin/gh
+            echo "Installed to /usr/bin/gh"
+          else
+            # Install to user directory
+            mkdir -p "$HOME/bin"
+            cp "${EXTRACTED_DIR}/bin/gh" "$HOME/bin/gh"
+            chmod +x "$HOME/bin/gh"
+            echo "$HOME/bin" >> $GITHUB_PATH
+            export PATH="$HOME/bin:$PATH"
+            echo "Installed to $HOME/bin/gh"
+          fi
+
+          # Cleanup
+          cd /
+          rm -rf "$TEMP_DIR"
+
           # Verify installation
-          echo "GitHub CLI version: $(gh --version)"
+          if command -v gh &> /dev/null; then
+            echo "✅ GitHub CLI installed successfully: $(gh --version)"
+          else
+            echo "❌ GitHub CLI installation failed"
+            exit 1
+          fi
 
       - name: add go (production)
         uses: actions/setup-go@v5

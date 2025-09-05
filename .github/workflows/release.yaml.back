@@ -12,7 +12,7 @@ on:
 
 jobs:
   release:
-    runs-on: ["self-hosted", "macOS", "ARM64", "cidekar"]
+    runs-on: ["self-hosted", "macOS", "ARM64", "cidekar", "macos-arm64"]
     steps:
       - name: checkout the repository
         uses: actions/checkout@v4

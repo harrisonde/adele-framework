@@ -1,0 +1,137 @@
+name: create release workflow
+
+on:
+  pull_request:
+    types: [closed]
+    branches:
+      - main
+
+jobs:
+  release:
+    runs-on: ["self-hosted", "macOS", "ARM64", "cidekar", "macos-arm64"]
+    if: github.event.pull_request.merged == true
+    steps:
+      - name: validate is a release pr
+        id: check_release
+        run: |
+          PR_TITLE="${{ github.event.pull_request.title }}"
+          echo "PR Title: $PR_TITLE"
+
+          # Pattern to match "Auto PR: release/v{semver}rc"
+          RC_PATTERN="Auto PR: release/(v?[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9.-]+)?(\+[a-zA-Z0-9.-]+)?)rc"
+
+          if [[ "$PR_TITLE" =~ $RC_PATTERN ]]; then
+            # Extract the version with "rc" suffix
+            RC_TAG="${BASH_REMATCH[1]}rc"
+            echo "RC tag extracted: $RC_TAG"
+
+            # Remove "rc" suffix to get clean version
+            CLEAN_TAG="${BASH_REMATCH[1]}"
+            echo "Clean tag (without rc): $CLEAN_TAG"
+
+            echo "is_release_pr=true" >> $GITHUB_OUTPUT
+            echo "rc_tag=$RC_TAG" >> $GITHUB_OUTPUT
+            echo "clean_tag=$CLEAN_TAG" >> $GITHUB_OUTPUT
+            echo "This is a release RC PR - proceeding with workflow"
+          else
+            echo "is_release_pr=false" >> $GITHUB_OUTPUT
+            echo "This is not a release RC PR - skipping workflow"
+          fi
+      - name: checkout the repository
+        if: steps.check_release.outputs.is_release_pr == 'true'
+        uses: actions/checkout@v4
+
+      - name: create clean release tag
+        if: steps.extract_tag.outputs.is_release_pr == 'true'
+        run: |
+          echo "Creating clean release tag: ${{ steps.extract_tag.outputs.clean_tag }}"
+
+          # Configure git
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git checkout main
+          # Create and push the clean tag (without "rc" suffix)
+          git tag ${{ steps.extract_tag.outputs.clean_tag }}
+          git push origin ${{ steps.extract_tag.outputs.clean_tag }}
+
+          echo "Successfully created and pushed tag: ${{ steps.extract_tag.outputs.clean_tag }}"
+      - name: add go (production)
+        uses: actions/setup-go@v5
+        if: ${{ !env.ACT }}
+        with:
+          go-version: '1.21'
+
+      - name: add go (testing)
+        if: ${{ env.ACT }}
+        run: |
+          echo "Checking for Go installation..."
+
+          if command -v go &> /dev/null; then
+            echo "✅ Go already available: $(go version)"
+          else
+            echo "Installing Go without package manager..."
+
+            # Create directory in user space (no sudo needed)
+            mkdir -p $HOME/go-install
+            cd $HOME/go-install
+
+            # Download Go using curl (more likely to be available than wget)
+            if command -v curl &> /dev/null; then
+              echo "Downloading Go 1.21.5..."
+              curl -sL https://go.dev/dl/go1.21.5.linux-amd64.tar.gz -o go.tar.gz
+
+              # Extract to home directory (no root needed)
+              tar -xzf go.tar.gz
+
+              # Set up paths
+              export GOROOT="$HOME/go-install/go"
+              export PATH="$GOROOT/bin:$PATH"
+              echo "$GOROOT/bin" >> $GITHUB_PATH
+
+              echo "✅ Go installed to: $GOROOT"
+            else
+              echo "❌ curl not available, cannot install Go"
+              exit 1
+            fi
+          fi
+
+          # Final verification
+          echo "Go version check:"
+          go version
+
+          # Set directories
+          mkdir -p /github/workspace/.gocache
+          mkdir -p /github/workspace/.gotmp
+          chmod -R 777 /github/workspace/.gocache /github/workspace/.gotmp
+
+      - name: install quill
+        run: curl -sSfL https://raw.githubusercontent.com/anchore/quill/main/install.sh | sh -s -- -b .tmp/quill v0.4.1
+
+      - name: run goreleaser
+        if: steps.check_release.outputs.is_release_pr == 'true'
+        run: |
+          if ! command -v goreleaser &> /dev/null; then
+            echo "Installing GoReleaser..."
+            go install github.com/goreleaser/goreleaser@latest
+            echo "✅ GoReleaser installed"
+          else
+            echo "✅ GoReleaser already available"
+          fi
+          echo "Release PR merged detected! Running release workflow..."
+          goreleaser release --clean --skip-validate
+          echo "✅ Release completed!"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Certificate Type: Developer ID Application
+          # Base64 encoded contents or path to signing private key and certificate from Apple (this is in the form of a ".p12" file)
+          QUILL_SIGN_P12: ${{ secrets.QUILL_SIGN_P12 }}
+          QUILL_SIGN_PASSWORD: ${{ secrets.QUILL_SIGN_PASSWORD }}
+          # App store connect team API Key with App Manager scope
+          # The .p8 key file path or its base64'd contents.
+          QUILL_NOTARY_KEY: ${{ secrets.QUILL_NOTARY_KEY }}
+          # The issuer ID.
+          # Its the UUID you see when creating the App Store Connect key.
+          QUILL_NOTARY_KEY_ID: ${{ secrets.QUILL_NOTARY_KEY_ID }}
+          # The issuer ID.
+          # Its the UUID you see when creating the App Store Connect key.
+          QUILL_NOTARY_ISSUER: ${{ secrets.QUILL_NOTARY_ISSUER }}

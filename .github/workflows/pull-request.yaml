@@ -1,0 +1,194 @@
+name: create pr workflow
+on:
+  push:
+    tags:
+      - '*rc'
+      # - '[0-9]+.[0-9]+.[0-9]+(-[a-zA-Z0-9.-]+)?(\+[a-zA-Z0-9.-]+)?'
+jobs:
+  release:
+    runs-on: ["self-hosted", "macOS", "ARM64", "cidekar", "macos-arm64"]
+    steps:
+
+      - name: install node.js manually
+        run: |
+          # Check if Node.js is already available
+          if ! command -v node &> /dev/null; then
+            echo "Installing Node.js..."
+            # Update package list
+            apt-get update -qq
+            apt-get install -y curl sudo wget gnupg
+
+            # Install Node.js LTS
+            curl -fsSL https://deb.nodesource.com/setup_lts.x | bash -
+            apt-get install -y nodejs
+
+            # Add to PATH
+            echo "/usr/bin" >> $GITHUB_PATH
+          fi
+
+          # Verify installation
+          echo "Node.js version: $(node --version)"
+          echo "npm version: $(npm --version)"
+
+      - name: install github CLI
+        run: |
+          # Check if gh is already installed
+          if ! command -v gh &> /dev/null; then
+            echo "Installing GitHub CLI..."
+
+            # Update package list
+            apt-get update -qq
+            apt-get install -y curl wget gnupg
+
+            # Add GitHub CLI repository
+            curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg
+            chmod go+r /usr/share/keyrings/githubcli-archive-keyring.gpg
+            echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | tee /etc/apt/sources.list.d/github-cli.list > /dev/null
+
+            # Install GitHub CLI
+            apt-get update -qq
+            apt-get install -y gh
+          fi
+
+          # Verify installation
+          echo "GitHub CLI version: $(gh --version)"
+
+      - name: add go (production)
+        uses: actions/setup-go@v5
+        if: ${{ !env.ACT }}
+        with:
+          go-version: '1.21'
+
+      - name: add go (testing)
+        if: ${{ env.ACT }}
+        run: |
+          echo "Checking for Go installation..."
+
+          if command -v go &> /dev/null; then
+            echo "✅ Go already available: $(go version)"
+          else
+            echo "Installing Go without package manager..."
+
+            # Create directory in user space (no sudo needed)
+            mkdir -p $HOME/go-install
+            cd $HOME/go-install
+
+            # Download Go using curl (more likely to be available than wget)
+            if command -v curl &> /dev/null; then
+              echo "Downloading Go 1.21.5..."
+              curl -sL https://go.dev/dl/go1.21.5.linux-amd64.tar.gz -o go.tar.gz
+
+              # Extract to home directory (no root needed)
+              tar -xzf go.tar.gz
+
+              # Set up paths
+              export GOROOT="$HOME/go-install/go"
+              export PATH="$GOROOT/bin:$PATH"
+              echo "$GOROOT/bin" >> $GITHUB_PATH
+
+              echo "✅ Go installed to: $GOROOT"
+            else
+              echo "❌ curl not available, cannot install Go"
+              exit 1
+            fi
+          fi
+
+          # Final verification
+          echo "Go version check:"
+          go version
+
+      - name: setup go directories for act
+        if: ${{ env.ACT }}
+        run: |
+          mkdir -p /github/workspace/.gocache
+          mkdir -p /github/workspace/.gotmp
+          chmod -R 777 /github/workspace/.gocache /github/workspace/.gotmp
+
+      - name: checkout the repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: extract version from tag
+        id: version
+        run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+
+      - name: create release branch
+        run: |
+          if ${{env.Act}}; then
+            mkdir -p ~/.ssh
+            ssh-keyscan -H github.com >> ~/.ssh/known_hosts
+            git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{secrets.GITHUB_USER}}/adele-framework.git
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git checkout -b release/${{ steps.version.outputs.VERSION }}
+          git push origin release/${{ steps.version.outputs.VERSION }}
+
+      - name: write version tag from release
+        run: |
+          GITHUB_REF_TAG=${{ steps.version.outputs.VERSION }} go run .github/workflows/semantic-release-write-version.go
+          cat adele.go | grep  "const Version*"
+          echo "✅ Version tag written to code"
+
+      - name: commit source code
+        run: |
+          if ${{env.Act}}; then
+            mkdir -p ~/.ssh
+            ssh-keyscan -H github.com >> ~/.ssh/known_hosts
+            git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{secrets.GITHUB_USER}}/adele-framework.git
+          fi
+
+          if git diff --cached --quiet && git diff --quiet; then
+            echo "✅ No changes to commit"
+          else
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git checkout release/${{ steps.version.outputs.VERSION }}
+            git commit -a -m "continuous integration build artifacts ${{ steps.version.outputs.VERSION }}"
+            git push origin release/${{ steps.version.outputs.VERSION }}
+            echo "✅ Git commit completed successfully"
+          fi
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN}}
+
+      - name: create pr from workflow release branch
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ACTOR_NAME: ${{ env.GITHUB_ACTOR || github.actor }}
+        run: |
+          SOURCE_BRANCH="release/${{ steps.version.outputs.VERSION }}"
+
+          gh repo set-default ${{ github.repository }}
+
+          if [[ "${ACTOR_NAME}" != "nektos/act" ]] && [[ -n "${ACTOR_NAME}" ]]; then
+            ASSIGNEE_FLAG="--assignee ${ACTOR_NAME}"
+            echo "Using assignee: ${ACTOR_NAME}"
+          else
+            ASSIGNEE_FLAG=""
+            echo "Skipping assignee (act mode or invalid user)"
+          fi
+
+          gh pr create \
+            --title "Auto PR: ${{ github.ref_name }}" \
+            --body "## Summary
+          This is an automatically generated pull request by github-actions[bot]
+
+          ### Changes
+          - Auto-generated from branch: \`${SOURCE_BRANCH}\`
+          - Triggered by: ${{ github.event_name }}
+          - Tag: ${{ steps.version.outputs.VERSION }}
+
+          ### Checklist
+          - [ ] Code review completed
+          - [ ] Tests passing
+          - [ ] Documentation updated
+
+          ---
+          *This PR was created automatically by GitHub Actions*" \
+            --head "${SOURCE_BRANCH}" \
+            --base "main" \
+            --label "automated,needs-review" \
+            ${ASSIGNEE_FLAG}
+
+          echo "✅ PR created for ${SOURCE_BRANCH} → main"

@@ -1,0 +1,160 @@
+name: create release pr when a tag is pushed
+on:
+  push:
+    tags:
+      - '[0-9]+.[0-9]+.[0-9]+(-[a-zA-Z0-9.-]+)?(\+[a-zA-Z0-9.-]+)?'
+jobs:
+  release:
+    runs-on: ["self-hosted", "macOS", "ARM64", "cidekar", "macos-arm64"]
+    steps:
+
+      - name: Install Node.js manually
+        run: |
+          # Check if Node.js is already available
+          if ! command -v node &> /dev/null; then
+            echo "Installing Node.js..."
+            # Update package list
+            apt-get update -qq
+            apt-get install -y curl sudo wget gnupg
+
+            # Install Node.js LTS
+            curl -fsSL https://deb.nodesource.com/setup_lts.x | bash -
+            apt-get install -y nodejs
+
+            # Add to PATH
+            echo "/usr/bin" >> $GITHUB_PATH
+          fi
+
+          # Verify installation
+          echo "Node.js version: $(node --version)"
+          echo "npm version: $(npm --version)"
+
+      - name: add go (production)
+        uses: actions/setup-go@v5
+        if: ${{ !env.ACT }}
+        with:
+          go-version: '1.21'
+
+      - name: add go (testing)
+        if: ${{ env.ACT }}
+        run: |
+          echo "Checking for Go installation..."
+
+          if command -v go &> /dev/null; then
+            echo "✅ Go already available: $(go version)"
+          else
+            echo "Installing Go without package manager..."
+
+            # Create directory in user space (no sudo needed)
+            mkdir -p $HOME/go-install
+            cd $HOME/go-install
+
+            # Download Go using curl (more likely to be available than wget)
+            if command -v curl &> /dev/null; then
+              echo "Downloading Go 1.21.5..."
+              curl -sL https://go.dev/dl/go1.21.5.linux-amd64.tar.gz -o go.tar.gz
+
+              # Extract to home directory (no root needed)
+              tar -xzf go.tar.gz
+
+              # Set up paths
+              export GOROOT="$HOME/go-install/go"
+              export PATH="$GOROOT/bin:$PATH"
+              echo "$GOROOT/bin" >> $GITHUB_PATH
+
+              echo "✅ Go installed to: $GOROOT"
+            else
+              echo "❌ curl not available, cannot install Go"
+              exit 1
+            fi
+          fi
+
+          # Final verification
+          echo "Go version check:"
+          go version
+
+      - name: setup go directories for act
+        if: ${{ env.ACT }}
+        run: |
+          mkdir -p /github/workspace/.gocache
+          mkdir -p /github/workspace/.gotmp
+          chmod -R 777 /github/workspace/.gocache /github/workspace/.gotmp
+
+      - name: checkout the repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: extract version from tag
+        id: version
+        run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+
+      - name: create release branch
+        run: |
+          if ${{env.Act}}; then
+            mkdir -p ~/.ssh
+            ssh-keyscan -H github.com >> ~/.ssh/known_hosts
+            git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{secrets.GITHUB_USER}}/adele-framework.git
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git checkout -b release/${{ steps.version.outputs.VERSION }}
+          git push origin release/${{ steps.version.outputs.VERSION }}
+
+      - name: write version tag from release
+        run: |
+          GITHUB_REF_TAG=${{ steps.version.outputs.VERSION }} go run .github/workflows/semantic-release-write-version.go
+          cat adele.go | grep  "const Version*"
+          echo "✅ Version tag written to code"
+
+      - name: commit source code
+        run: |
+          if ${{env.Act}}; then
+            mkdir -p ~/.ssh
+            ssh-keyscan -H github.com >> ~/.ssh/known_hosts
+            git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{secrets.GITHUB_USER}}/adele-framework.git
+          fi
+
+          if git diff --cached --quiet && git diff --quiet; then
+            echo "✅ No changes to commit"
+          else
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git checkout release/${{ steps.version.outputs.VERSION }}
+            git commit -a -m "continuous integration build artifacts ${{ steps.version.outputs.VERSION }}"
+            git push origin release/${{ steps.version.outputs.VERSION }}
+            echo "✅ Git commit completed successfully"
+          fi
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN}}
+
+      - name: create pull request
+        uses: peter-evans/create-pull-request@v5
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: "Auto-generated changes for release"
+          title: "Auto PR: ${{ github.ref_name }}"
+          body: |
+            ## Summary
+            This is an automatically generated pull request by github-actions[bot]
+
+            ### Changes
+            - Auto-generated from branch: `${{ github.ref_name }}`
+            - Triggered by: ${{ github.event_name }}
+            - Tag: ${{ steps.version.outputs.VERSION }}
+
+            ### Checklist
+            - [ ] Code review completed
+            - [ ] Tests passing
+            - [ ] Documentation updated
+
+            ---
+            *This PR was created automatically by GitHub Actions*
+          branch: release/${{ steps.version.outputs.VERSION }}
+          base: main
+          delete-branch: false
+          draft: false
+          assignees: ${{ github.actor }}
+          labels: |
+            automated
+            needs-review

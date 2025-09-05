@@ -1,6 +1,4 @@
 version: 1
-env:
-  - GOSUMDB=off
 before:
   hooks:
     - go mod tidy

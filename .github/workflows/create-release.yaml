@@ -113,9 +113,6 @@ jobs:
 
       - name: run goreleaser
         if: steps.check_release.outputs.is_release_pr == 'true'
-        env:
-          GOSUMDB: "sum.golang.org"
-          GOPROXY: "https://proxy.golang.org,direct"
         run: |
           echo "=== GoReleaser Environment ==="
           echo "GOSUMDB: '$GOSUMDB'"
@@ -135,6 +132,8 @@ jobs:
           goreleaser release --clean --skip-validate
           echo "✅ Release completed!"
         env:
+          GOSUMDB: "sum.golang.org"
+          GOPROXY: "https://proxy.golang.org,direct"
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           # Certificate Type: Developer ID Application
           # Base64 encoded contents or path to signing private key and certificate from Apple (this is in the form of a ".p12" file)

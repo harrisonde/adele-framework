@@ -195,8 +195,11 @@ jobs:
           echo "✅ Version tag written to code"
 
       - name: commit source code
+        env:
+            IS_ACT: ${{ env.ACT || 'false' }}
+            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN}}
         run: |
-          if ${{env.Act}}; then
+          if [ "$IS_ACT" = "true" ]; then
             mkdir -p ~/.ssh
             ssh-keyscan -H github.com >> ~/.ssh/known_hosts
             git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{secrets.GITHUB_USER}}/adele-framework.git
@@ -212,8 +215,6 @@ jobs:
             git push origin release/${{ steps.version.outputs.VERSION }}
             echo "✅ Git commit completed successfully"
           fi
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN}}
 
       - name: create pr from workflow release branch
         env:

@@ -3,6 +3,9 @@ before:
   hooks:
     - go mod tidy
     - go mod download
+env:
+  - GOSUMDB=sum.golang.org
+  - GOPROXY=https://proxy.golang.org,direct
 builds:
   - id: adele-lin-win
     binary: adele

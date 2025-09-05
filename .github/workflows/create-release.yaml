@@ -49,7 +49,7 @@ jobs:
           # Configure git
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git checkout main
+          git checkout main-test
           # Create and push the clean tag (without "rc" suffix)
           git tag ${{ steps.check_release.outputs.clean_tag }}
           git push origin ${{ steps.check_release.outputs.clean_tag }}

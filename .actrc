@@ -4,10 +4,11 @@
 -P macos-amd64=golang:1.23
 -P ubuntu-latest=golang:1.23
 
---env GITHUB_REF_NAME=ci/candidate-$(date +%Y%m%d.%H%M)
---env GITHUB_REF_TAG=$(echo "1.0.0-ci.$(date +%Y%m%d.%H%M)+sha.$(git rev-parse --short HEAD)")
+# Git reference (branch or tag) that triggered the workflow run.
+--env GITHUB_REF_NAME=release/v0.0.1
+--env GITHUB_REF=v0.0.1
+--env GITHUB_ACTOR=harrisonde
 
-
-# Set secrets
 --secret-file .act.secrets
+
 --container-options --tmpfs /tmp:size=2G --user root --privileged --env GOCACHE=/github/workspace/.gocache --env GOTMPDIR=/github/workspace/.gotmp

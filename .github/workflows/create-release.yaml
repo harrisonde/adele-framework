@@ -55,12 +55,15 @@ jobs:
           git push origin ${{ steps.check_release.outputs.clean_tag }}
 
           echo "Successfully created and pushed tag: ${{ steps.check_release.outputs.clean_tag }}"
+
       - name: add go (production)
         uses: actions/setup-go@v5
         if: ${{ !env.ACT }}
         with:
           go-version: '1.21'
           cache: false
+        env:
+          GOPROXY: "https://proxy.golang.org,direct"
 
       - name: add go (testing)
         if: ${{ env.ACT }}
@@ -111,6 +114,13 @@ jobs:
       - name: run goreleaser
         if: steps.check_release.outputs.is_release_pr == 'true'
         run: |
+          echo "=== GoReleaser Environment ==="
+          echo "GOSUMDB: '$GOSUMDB'"
+          echo "GOPROXY: '$GOPROXY'"
+          go env GOSUMDB
+          go env GOPROXY
+          echo ""
+
           if ! command -v goreleaser &> /dev/null; then
             echo "Installing GoReleaser..."
             go install github.com/goreleaser/goreleaser@latest

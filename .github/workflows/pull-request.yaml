@@ -175,8 +175,10 @@ jobs:
         run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
 
       - name: create release branch
+        env:
+          IS_ACT: ${{ env.ACT || 'false' }}
         run: |
-          if ${{env.Act}}; then
+          if [ "$IS_ACT" = "true" ]; then
             mkdir -p ~/.ssh
             ssh-keyscan -H github.com >> ~/.ssh/known_hosts
             git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{secrets.GITHUB_USER}}/adele-framework.git

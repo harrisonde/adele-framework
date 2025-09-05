@@ -17,8 +17,8 @@ jobs:
           PR_TITLE="${{ github.event.pull_request.title }}"
           echo "PR Title: $PR_TITLE"
 
-          # Pattern to match "Auto PR: release/v{semver}rc"
-          RC_PATTERN="Auto PR: release/(v?[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9.-]+)?(\+[a-zA-Z0-9.-]+)?)rc"
+          # Pattern to match "Auto Release PR: v{semver}rc"
+          RC_PATTERN="Auto Release PR: (v?[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9.-]+)?(\+[a-zA-Z0-9.-]+)?)rc"
 
           if [[ "$PR_TITLE" =~ $RC_PATTERN ]]; then
             # Extract the version with "rc" suffix

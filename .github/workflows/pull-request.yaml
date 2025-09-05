@@ -234,7 +234,7 @@ jobs:
           fi
 
           gh pr create \
-            --title "Auto PR: ${{ github.ref_name }}" \
+            --title "Auto Release PR: ${{ github.ref_name }}" \
             --body "## Summary
           This is an automatically generated pull request by github-actions[bot]
 

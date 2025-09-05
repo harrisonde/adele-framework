@@ -256,3 +256,7 @@ jobs:
             ${ASSIGNEE_FLAG}
 
           echo "✅ PR created for ${SOURCE_BRANCH} → main"
+      - name: clean go cache
+        run: |
+          go clean -modcache
+          go clean -cache

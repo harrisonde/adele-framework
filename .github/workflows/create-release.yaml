@@ -44,7 +44,7 @@ jobs:
       - name: create clean release tag
         if: steps.check_release.outputs.is_release_pr == 'true'
         run: |
-          echo "Creating clean release tag: ${{ steps.extract_tag.outputs.clean_tag }}"
+          echo "Creating clean release tag: ${{ steps.check_release.outputs.clean_tag }}"
 
           # Configure git
           git config user.name "github-actions[bot]"

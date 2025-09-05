@@ -51,10 +51,10 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git checkout main
           # Create and push the clean tag (without "rc" suffix)
-          git tag ${{ steps.extract_tag.outputs.clean_tag }}
-          git push origin ${{ steps.extract_tag.outputs.clean_tag }}
+          git tag ${{ steps.check_release.outputs.clean_tag }}
+          git push origin ${{ steps.check_release.outputs.clean_tag }}
 
-          echo "Successfully created and pushed tag: ${{ steps.extract_tag.outputs.clean_tag }}"
+          echo "Successfully created and pushed tag: ${{ steps.check_release.outputs.clean_tag }}"
       - name: add go (production)
         uses: actions/setup-go@v5
         if: ${{ !env.ACT }}

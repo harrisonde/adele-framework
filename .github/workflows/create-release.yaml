@@ -8,6 +8,8 @@ on:
 
 jobs:
   release:
+    env:
+      BASE_BRANCH: ${{ github.event.pull_request.base.ref }}
     runs-on: ["self-hosted", "macOS", "ARM64", "cidekar", "macos-arm64"]
     if: github.event.pull_request.merged == true
     steps:
@@ -52,12 +54,24 @@ jobs:
           # Configure git
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git checkout main-test
-          # Create and push the clean tag (without "rc" suffix)
+
+          # Switch to base branch safely
+          echo "Switching to base branch: $BASE_BRANCH"
+          git fetch origin $BASE_BRANCH
+
+          if git checkout $BASE_BRANCH; then
+            echo "✅ Successfully checked out $BASE_BRANCH"
+            git pull origin $BASE_BRANCH
+          else
+            echo "❌ Failed to checkout $BASE_BRANCH"
+            exit 1
+          fi
+
+          # Create and push the clean tag
           git tag ${{ steps.check_release.outputs.clean_tag }}
           git push origin ${{ steps.check_release.outputs.clean_tag }}
 
-          echo "Successfully created and pushed tag: ${{ steps.check_release.outputs.clean_tag }}"
+          echo "✅ Clean tag ${{ steps.check_release.outputs.clean_tag }} created successfully"
 
       - name: add go (production)
         uses: actions/setup-go@v5

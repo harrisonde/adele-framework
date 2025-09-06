@@ -29,7 +29,7 @@ func TestNewServer_DefaultPort(t *testing.T) {
 
 func TestNewServer_CustomPort(t *testing.T) {
 	// Set custom port
-	os.Setenv("PORT", "8080")
+	os.Setenv("HTTP_PORT", "8080")
 	defer os.Unsetenv("PORT")
 
 	// Create minimal Adele instance

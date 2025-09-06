@@ -18,20 +18,22 @@ jobs:
           echo "PR Title: $PR_TITLE"
 
           # Pattern to match "Auto Release PR: v{semver}rc"
-          RC_PATTERN="Auto Release PR: (v?[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9.-]+)?(\+[a-zA-Z0-9.-]+)?)rc"
+          RC_PATTERN="Auto Release PR: (v?[0-9]+\.[0-9]+\.[0-9]+)(-rc(\.[a-zA-Z0-9.-]+)?(\+[a-zA-Z0-9.-]+)?)"
 
           if [[ "$PR_TITLE" =~ $RC_PATTERN ]]; then
-            # Extract the version with "rc" suffix
-            RC_TAG="${BASH_REMATCH[1]}rc"
-            echo "RC tag extracted: $RC_TAG"
+            # Extract the base version (without any -rc suffix)
+            BASE_VERSION="${BASH_REMATCH[1]}"
 
-            # Remove "rc" suffix to get clean version
-            CLEAN_TAG="${BASH_REMATCH[1]}"
-            echo "Clean tag (without rc): $CLEAN_TAG"
+            # Extract the full RC tag (base + rc suffix)
+            RC_SUFFIX="${BASH_REMATCH[2]}"
+            RC_TAG="${BASE_VERSION}${RC_SUFFIX}"
+
+            echo "RC tag extracted: $RC_TAG"
+            echo "Clean tag (without rc): $BASE_VERSION"
 
             echo "is_release_pr=true" >> $GITHUB_OUTPUT
             echo "rc_tag=$RC_TAG" >> $GITHUB_OUTPUT
-            echo "clean_tag=$CLEAN_TAG" >> $GITHUB_OUTPUT
+            echo "clean_tag=$BASE_VERSION" >> $GITHUB_OUTPUT
             echo "This is a release RC PR - proceeding with workflow"
           else
             echo "is_release_pr=false" >> $GITHUB_OUTPUT

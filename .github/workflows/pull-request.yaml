@@ -175,6 +175,15 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: download dependencies
+        run: go mod download
+
+      - name: Clean test cache
+        run: go clean -testcache
+
+      - name: Run all tests
+        run: go test ./...
+
       - name: extract version from tag
         id: version
         run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT

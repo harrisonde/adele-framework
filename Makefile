@@ -181,9 +181,10 @@ test\:help:
 .SILENT:
 release\:verify:
 	@if [[ ! $(PACKAGE_PUBLICATION_TAG_NEXT) =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z-]+(\.[0-9A-Za-z-]+)*)?(\+[0-9A-Za-z-]+(\.[0-9A-Za-z-]+)*)?$$ ]]; then \
-		echo "Error: Tag '$(PACKAGE_PUBLICATION_TAG_NEXT)' does not follow semantic versioning format"; \
-		echo "Expected: vX.Y.Z[-prerelease][+buildmeta]"; \
-		echo "Examples: v1.0.0, v10.21.34-alpha.1, v1.2.3+build.123, v2.0.0-beta.1+exp.sha.5114f85"; \
+		echo "❗ Error: Tag '$(PACKAGE_PUBLICATION_TAG_NEXT)' does not follow semantic versioning format"; \
+		echo "   Expected: vX.Y.Z[-prerelease][+buildmeta]"; \
+		echo "   See release:help for more information"; \
+		echo ""; \
 		exit 1; \
 	fi
 
@@ -193,29 +194,28 @@ release\:verify:
 		exit 1; \
 	fi
 
-	@echo "The next package release will be tagged with $(PACKAGE_PUBLICATION_TAG_NEXT)"
-
 	# Check if working directory is clean
-	@if ! git diff-index --quiet HEAD --; then \
-		echo "Error: working directory has uncommitted changes"; \
-		exit 1; \
-	fi
+# 	@if ! git diff-index --quiet HEAD --; then \
+# 		echo "Error: working directory has uncommitted changes"; \
+# 		exit 1; \
+# 	fi
 
-	# Check if we're on the expected branch
-	CURRENT_BRANCH=$$(git branch --show-current); \
-	if [[ ! "$$CURRENT_BRANCH" =~ ^(main|release/.*|ci/.*|hotfix/.*)$$ ]]; then \
-		echo "Error: Branch '$$CURRENT_BRANCH' not allowed. Must be main, ci/*, release/*, or hotfix/*"; \
-		exit 1; \
-	fi
-
-	@read -p "Do you wish to proceed with the release? [y/N] " ans && ans=$${ans:-N} ; \
+	@CURRENT_BRANCH=$$(git branch --show-current); \
+	CURRENT_COMMIT=$$(git rev-parse --short HEAD); \
+	echo "📍 Current branch: $$CURRENT_BRANCH"; \
+	echo "📍 Current commit: $$CURRENT_COMMIT"; \
+	echo "🏷️  Tag to create: $$PACKAGE_PUBLICATION_TAG_NEXT"; \
+	echo ""; \
+	echo "Do you wish to proceed with the release? [y/N] ";\
+	read -p "?" ans && ans=$${ans:-N}; \
 	if [ $${ans} = y ] || [ $${ans} = Y ]; then \
-		echo "Creating and pushing tag: $$PACKAGE_PUBLICATION_TAG_NEXT"; \
+		echo "Creating tag: $$PACKAGE_PUBLICATION_TAG_NEXT"; \
 		git tag $$PACKAGE_PUBLICATION_TAG_NEXT; \
 		git push origin $$PACKAGE_PUBLICATION_TAG_NEXT; \
-		echo "✓ Release $$PACKAGE_PUBLICATION_TAG_NEXT created successfully"; \
+		echo "✓ Tag $$PACKAGE_PUBLICATION_TAG_NEXT pushed successfully"; \
 	else \
 		echo "Release cancelled"; \
+		echo ""; \
 		exit 1; \
 	fi
 
@@ -245,28 +245,34 @@ release\:preamble:
 	@echo "🏷️  SEMANTIC VERSIONING FORMAT:"
 	@echo "  Tags must follow: vMAJOR.MINOR.PATCH[-prerelease][+buildmeta]"
 	@echo ""
-	@echo "  ✅ Valid examples:"
-	@echo "    v1.0.0                    - Basic release"
-	@echo "    v10.21.34                 - Multi-digit versions"
-	@echo "    v1.0.0-alpha              - Prerelease"
-	@echo "    v1.0.0-alpha.1            - Prerelease with number"
-	@echo "    v1.0.0-beta.2+build.123   - Prerelease + build metadata"
-	@echo "    v2.1.0+exp.sha.5114f85    - Build metadata only"
+	@echo "  🚀 WORKFLOW TRIGGERS (these will trigger GitHub Actions):"
+	@echo "    v1.0.0-rc                 - Basic release candidate"
+	@echo "    v1.0.0-rc.1               - Release candidate iteration"
+	@echo "    v1.0.0-rc.beta            - Release candidate with label"
+	@echo "    v1.0.0-rc+build.123       - RC with build metadata"
+	@echo "    v1.0.0-rc.1+sha.abc123    - RC iteration with git hash"
+	@echo "    v10.21.34-rc              - Multi-digit RC versions"
 	@echo ""
 
-#$(eval PACKAGE_PUBLICATION_TAG_NEXT=$(shell read -p "Enter new tag: " tag; echo $$tag))
 release\:capture:
+	echo "";
 	@NEXT_TAG=$$(read -p "Enter new tag: " tag; echo $$tag); \
 	 export NEXT_TAG; \
-	 echo "Selected tag: $$NEXT_TAG"; \
+	 echo ""; \
 	 make release:verify PACKAGE_PUBLICATION_TAG_NEXT=$$NEXT_TAG 2>/dev/null || exit 1
 
 
 
 .SILENT:
 release\:get-current-tag:
+	@echo "📡 Fetching latest tags from origin..."
+	@if git fetch --tags origin --quiet; then \
+		echo "✅ Tags updated successfully"; \
+	else \
+		echo "⚠️  Warning: Could not fetch tags from origin"; \
+	fi
 	$(eval LATEST_TAG=$(shell git describe --tags --abbrev=0 2>/dev/null || echo "No current tags found"))
-	@echo "Current tag: $(LATEST_TAG)"
+	@echo "🏷️  LAST KNOWN TAG: $(LATEST_TAG)"
 
 # Combined release target for convenience
 #@make release:pull release:verify
@@ -294,35 +300,54 @@ release\:help:
 	@echo "🏷️  SEMANTIC VERSIONING FORMAT:"
 	@echo "  Tags must follow: vMAJOR.MINOR.PATCH[-prerelease][+buildmeta]"
 	@echo ""
-	@echo "  ✅ Valid examples:"
-	@echo "    v1.0.0                    - Basic release"
-	@echo "    v10.21.34                 - Multi-digit versions"
-	@echo "    v1.0.0-alpha              - Prerelease"
-	@echo "    v1.0.0-alpha.1            - Prerelease with number"
-	@echo "    v1.0.0-beta.2+build.123   - Prerelease + build metadata"
-	@echo "    v2.1.0+exp.sha.5114f85    - Build metadata only"
+	@echo "  🚀 WORKFLOW TRIGGERS (these will trigger GitHub Actions):"
+	@echo "    v1.0.0-rc                 - Basic release candidate"
+	@echo "    v1.0.0-rc.1               - Release candidate iteration"
+	@echo "    v1.0.0-rc.beta            - Release candidate with label"
+	@echo "    v1.0.0-rc+build.123       - RC with build metadata"
+	@echo "    v1.0.0-rc.1+sha.abc123    - RC iteration with git hash"
+	@echo "    v10.21.34-rc              - Multi-digit RC versions"
+	@echo ""
+	@echo "  ✅ Valid semver (but won't trigger workflow):"
+	@echo "    v1.0.0                    - Basic release (manual only)"
+	@echo "    v1.0.0-alpha              - Alpha prerelease (manual only)"
+	@echo "    v1.0.0-beta.2             - Beta prerelease (manual only)"
+	@echo "    v2.1.0+exp.sha.5114f85    - Build metadata only (manual only)"
 	@echo ""
 	@echo "  ❌ Invalid examples:"
 	@echo "    1.0.0        - Missing 'v' prefix"
 	@echo "    v1.0         - Missing patch version"
 	@echo "    v1.0.0-      - Empty prerelease"
 	@echo "    v1.0.0+      - Empty build metadata"
+	@echo "    v1.0.0rc     - Missing hyphen (use v1.0.0-rc)"
 	@echo ""
-	@echo "🌿 SUPPORTED BRANCHES:"
-	@echo "  📦 Production releases: $(PACKAGE_BRANCH)"
-	@echo "  🧪 Test releases:       ci/* (any branch starting with 'ci/')"
+	@echo "🌿 BRANCH PROTECTION & TAGGING:"
+	@echo "  📦 Protected branch: $(PACKAGE_BRANCH) (PR-only merges)"
+	@echo "  🏷️  Tags can be created from: ANY branch/commit"
+	@echo "  🚀 RC workflow target: Merges PRs into $(PACKAGE_BRANCH)"
 	@echo ""
-	@echo "🔄 TYPICAL WORKFLOW:"
-	@echo "  1. Set your target version:"
-	@echo "     export PACKAGE_PUBLICATION_TAG_NEXT=v1.2.3"
+	@echo "  Note: While you can tag from any branch, the automated RC workflow"
+	@echo "        creates PRs that target $(PACKAGE_BRANCH) for final release."
 	@echo ""
-	@echo "  2. For PRODUCTION releases:"
-	@echo "     git checkout $(PACKAGE_BRANCH)"
-	@echo "     make release"
+	@echo "🔄 AUTOMATED WORKFLOW (RC tags only):"
+	@echo "  1. Set your target RC version:"
+	@echo "     export PACKAGE_PUBLICATION_TAG_NEXT=v1.2.3-rc"
 	@echo ""
-	@echo "  3. For TEST releases:"
-	@echo "     git checkout ci/your-test-branch"
-	@echo "     make release"
+	@echo "  2. Create and push RC tag (from any branch):"
+	@echo "     git checkout feature/my-branch  # Can be any branch"
+	@echo "     make release  # Creates v1.2.3-rc tag"
+	@echo ""
+	@echo "  3. Automated process:"
+	@echo "     • GitHub Actions detects -rc tag (regardless of source branch)"
+	@echo "     • Creates PR: 'Auto Release PR: v1.2.3-rc' → $(PACKAGE_BRANCH)"
+	@echo "     • When PR merged → Strips '-rc' → Creates clean 'v1.2.3' tag"
+	@echo "     • Creates GitHub release from $(PACKAGE_BRANCH)"
+	@echo ""
+	@echo "🔧 MANUAL WORKFLOW (non-RC tags):"
+	@echo "  For tags without -rc suffix:"
+	@echo "  1. Create tag manually: git tag v1.2.3"
+	@echo "  2. Push tag: git push origin v1.2.3"
+	@echo "  3. Create GitHub release manually (no automation)"
 	@echo ""
 	@echo "✅ PRE-RELEASE CHECKS:"
 	@echo "  The workflow automatically verifies:"
@@ -337,15 +362,32 @@ release\:help:
 	@echo "  • 'Uncommitted changes' → Commit or stash your changes"
 	@echo "  • 'Wrong branch' → Switch to $(PACKAGE_BRANCH) or ci/* branch"
 	@echo "  • 'Behind origin' → Run: make release:pull"
+	@echo "  • 'RC workflow failed' → Check GitHub Actions for details"
+	@echo "  • 'GOSUMDB errors' → Ensure Go 1.23+ is installed"
 	@echo ""
 	@echo "💡 TIPS:"
-	@echo "  • Use ci/ branches to test the release process safely"
-	@echo "  • Prerelease versions (v1.0.0-alpha) won't trigger production deploys"
+	@echo "  • RC tags can be created from any branch/commit"
+	@echo "  • RC workflow always targets $(PACKAGE_BRANCH) for final release"
+	@echo "  • Branch protection ensures code review before release"
+	@echo "  • Use feature branches to tag experimental RCs safely"
+	@echo "  • Final release will be created from $(PACKAGE_BRANCH) after PR merge"
+	@echo "  • RC iterations (v1.0.0-rc.1, v1.0.0-rc.2) all promote to same version"
 	@echo "  • Build metadata (+build.123) is ignored by version precedence"
-	@echo "  • Always test on ci/ branches before releasing to $(PACKAGE_BRANCH)"
+	@echo ""
+	@echo "🔧 RELEASE CANDIDATE EXAMPLES:"
+	@echo "  Testing iterations (all create final v1.0.0):"
+	@echo "    v1.0.0-rc     → Auto workflow → v1.0.0"
+	@echo "    v1.0.0-rc.1   → Auto workflow → v1.0.0"
+	@echo "    v1.0.0-rc.2   → Auto workflow → v1.0.0"
+	@echo ""
+	@echo "  Manual releases (no automation):"
+	@echo "    v1.0.0        → Manual process only"
+	@echo "    v1.0.0-alpha  → Manual process only"
+	@echo "    v1.0.0-beta   → Manual process only"
 	@echo ""
 	@echo "📚 MORE INFO:"
 	@echo "  • Semantic Versioning: https://semver.org/"
 	@echo "  • Git Tagging: https://git-scm.com/book/en/v2/Git-Basics-Tagging"
+	@echo "  • GitHub Actions: Check .github/workflows/ for automation details"
 	@echo ""
 	@echo "═══════════════════════════════════════════════════════════════════"

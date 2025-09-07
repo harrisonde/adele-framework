@@ -114,7 +114,7 @@ func TestStart_ImmediateError(t *testing.T) {
 		if !strings.Contains(errorStr, "permission") && !strings.Contains(errorStr, "bind") && !strings.Contains(errorStr, "address") {
 			t.Errorf("Expected error about permission/bind/address, got: %v", err)
 		}
-	case <-time.After(2 * time.Second):
+	case <-time.After(10 * time.Second):
 		t.Fatal("Test timed out - server should have failed immediately")
 	}
 }

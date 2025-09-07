@@ -88,8 +88,8 @@ func TestNewServer_NilAdele(t *testing.T) {
 
 func TestStart_ImmediateError(t *testing.T) {
 	// Use port 22 which is ssh and should be busy
-	os.Setenv("PORT", "22")
-	defer os.Unsetenv("PORT")
+	os.Setenv("HTTP_PORT", "22")
+	defer os.Unsetenv("HTTP_PORT")
 
 	app := &adele.Adele{
 		Routes: mux.NewRouter(),
@@ -132,8 +132,8 @@ func TestStart_NilAdele(t *testing.T) {
 
 func TestStart_InvalidPort(t *testing.T) {
 	// Set invalid port
-	os.Setenv("PORT", "invalid")
-	defer os.Unsetenv("PORT")
+	os.Setenv("HTTP_PORT", "invalid")
+	defer os.Unsetenv("HTTP_PORT")
 
 	app := &adele.Adele{
 		Routes: mux.NewRouter(),

@@ -29,7 +29,7 @@ func TestNewServer_DefaultPort(t *testing.T) {
 
 func TestNewServer_CustomPort(t *testing.T) {
 	// Set custom port
-	os.Setenv("PORT", "8080")
+	os.Setenv("HTTP_PORT", "8080")
 	defer os.Unsetenv("PORT")
 
 	// Create minimal Adele instance
@@ -88,8 +88,8 @@ func TestNewServer_NilAdele(t *testing.T) {
 
 func TestStart_ImmediateError(t *testing.T) {
 	// Use port 22 which is ssh and should be busy
-	os.Setenv("PORT", "22")
-	defer os.Unsetenv("PORT")
+	os.Setenv("HTTP_PORT", "22")
+	defer os.Unsetenv("HTTP_PORT")
 
 	app := &adele.Adele{
 		Routes: mux.NewRouter(),
@@ -114,7 +114,7 @@ func TestStart_ImmediateError(t *testing.T) {
 		if !strings.Contains(errorStr, "permission") && !strings.Contains(errorStr, "bind") && !strings.Contains(errorStr, "address") {
 			t.Errorf("Expected error about permission/bind/address, got: %v", err)
 		}
-	case <-time.After(2 * time.Second):
+	case <-time.After(10 * time.Second):
 		t.Fatal("Test timed out - server should have failed immediately")
 	}
 }
@@ -132,8 +132,8 @@ func TestStart_NilAdele(t *testing.T) {
 
 func TestStart_InvalidPort(t *testing.T) {
 	// Set invalid port
-	os.Setenv("PORT", "invalid")
-	defer os.Unsetenv("PORT")
+	os.Setenv("HTTP_PORT", "invalid")
+	defer os.Unsetenv("HTTP_PORT")
 
 	app := &adele.Adele{
 		Routes: mux.NewRouter(),

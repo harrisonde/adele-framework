@@ -1,0 +1,341 @@
+name: create pr workflow
+
+env:
+  BASE_BRANCH: main
+
+on:
+  push:
+    tags:
+      - '*-rc'       # v1.0.0-rc
+      - '*-rc.*'     # v1.0.0-rc.1, v1.0.0-rc.beta
+      - '*-rc+*'     # v1.0.0-rc+build.123
+jobs:
+  release:
+    runs-on: ["self-hosted", "macOS", "ARM64", "cidekar", "macos-arm64"]
+    steps:
+      - name: install github CLI
+        run: |
+          # Check if already installed
+          if command -v gh &> /dev/null; then
+            echo "GitHub CLI already available: $(gh --version)"
+            exit 0
+          fi
+
+          echo "Installing GitHub CLI via direct download..."
+
+          # Use latest version or specify a known working version
+          GH_VERSION="2.62.0"
+
+          # Detect platform and architecture
+          OS=$(uname -s | tr '[:upper:]' '[:lower:]')
+          ARCH=$(uname -m)
+
+          # Map architecture names to GitHub CLI conventions
+          case $ARCH in
+            x86_64) GH_ARCH="amd64" ;;
+            aarch64) GH_ARCH="arm64" ;;
+            arm64) GH_ARCH="arm64" ;;
+            *) echo "Unsupported architecture: $ARCH"; exit 1 ;;
+          esac
+
+          # Set correct filename format based on OS
+          case $OS in
+            linux)
+              FILENAME="gh_${GH_VERSION}_linux_${GH_ARCH}.tar.gz"
+              EXTRACT_CMD="tar -xzf"
+              ;;
+            darwin)
+              # macOS uses .zip format, not .tar.gz
+              FILENAME="gh_${GH_VERSION}_macOS_${GH_ARCH}.zip"
+              EXTRACT_CMD="unzip -q"
+              ;;
+            *) echo "Unsupported OS: $OS"; exit 1 ;;
+          esac
+
+          DOWNLOAD_URL="https://github.com/cli/cli/releases/download/v${GH_VERSION}/${FILENAME}"
+
+          echo "Downloading: $DOWNLOAD_URL"
+
+          # Create temp directory
+          TEMP_DIR=$(mktemp -d)
+          cd "$TEMP_DIR"
+
+          # Download
+          curl -fsSL "$DOWNLOAD_URL" -o "gh_archive" || {
+            echo "Failed to download GitHub CLI from $DOWNLOAD_URL"
+            echo "File might not exist. Checking available releases..."
+            curl -s "https://api.github.com/repos/cli/cli/releases/latest" | grep "browser_download_url" | grep -E "(macOS|linux)" | head -5
+            exit 1
+          }
+
+          # Extract based on file type
+          $EXTRACT_CMD gh_archive || {
+            echo "Failed to extract archive"
+            exit 1
+          }
+
+          # The extracted directory should match the filename (without extension)
+          case $OS in
+            linux)
+              EXTRACTED_DIR="gh_${GH_VERSION}_linux_${GH_ARCH}"
+              ;;
+            darwin)
+              EXTRACTED_DIR="gh_${GH_VERSION}_macOS_${GH_ARCH}"
+              ;;
+          esac
+
+          # Verify the extracted directory exists
+          if [ ! -d "$EXTRACTED_DIR" ]; then
+            echo "Expected directory $EXTRACTED_DIR not found. Contents:"
+            ls -la
+            exit 1
+          fi
+
+          # Install the binary
+          if [ -w /usr/local/bin ] 2>/dev/null; then
+            cp "${EXTRACTED_DIR}/bin/gh" /usr/local/bin/gh
+            chmod +x /usr/local/bin/gh
+            echo "Installed to /usr/local/bin/gh"
+          else
+            # Install to user directory
+            mkdir -p "$HOME/bin"
+            cp "${EXTRACTED_DIR}/bin/gh" "$HOME/bin/gh"
+            chmod +x "$HOME/bin/gh"
+            echo "$HOME/bin" >> $GITHUB_PATH
+            export PATH="$HOME/bin:$PATH"
+            echo "Installed to $HOME/bin/gh"
+          fi
+
+          # Cleanup
+          cd /
+          rm -rf "$TEMP_DIR"
+
+          # Verify installation
+          if command -v gh &> /dev/null; then
+            echo "✅ GitHub CLI installed successfully: $(gh --version)"
+          else
+            echo "❌ GitHub CLI installation failed"
+            exit 1
+          fi
+
+      - name: add go (production)
+        uses: actions/setup-go@v5
+        if: ${{ !env.ACT }}
+        with:
+          go-version: '1.21'
+          cache: false
+
+      - name: add go (testing)
+        if: ${{ env.ACT }}
+        run: |
+          echo "Checking for Go installation..."
+
+          if command -v go &> /dev/null; then
+            echo "✅ Go already available: $(go version)"
+          else
+            echo "Installing Go without package manager..."
+
+            # Create directory in user space (no sudo needed)
+            mkdir -p $HOME/go-install
+            cd $HOME/go-install
+
+            # Download Go using curl (more likely to be available than wget)
+            if command -v curl &> /dev/null; then
+              echo "Downloading Go 1.21.5..."
+              curl -sL https://go.dev/dl/go1.21.5.linux-amd64.tar.gz -o go.tar.gz
+
+              # Extract to home directory (no root needed)
+              tar -xzf go.tar.gz
+
+              # Set up paths
+              export GOROOT="$HOME/go-install/go"
+              export PATH="$GOROOT/bin:$PATH"
+              echo "$GOROOT/bin" >> $GITHUB_PATH
+
+              echo "✅ Go installed to: $GOROOT"
+            else
+              echo "❌ curl not available, cannot install Go"
+              exit 1
+            fi
+          fi
+
+          # Final verification
+          echo "Go version check:"
+          go version
+
+      - name: setup go directories for act
+        if: ${{ env.ACT }}
+        run: |
+          mkdir -p /github/workspace/.gocache
+          mkdir -p /github/workspace/.gotmp
+          chmod -R 777 /github/workspace/.gocache /github/workspace/.gotmp
+
+      - name: checkout the repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: download dependencies
+        run: go mod download
+
+      - name: Clean test cache
+        run: go clean -testcache
+
+      - name: Run all tests
+        run: go test ./...
+
+      - name: extract version from tag
+        id: version
+        run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+
+      - name: create release branch
+        env:
+          IS_ACT: ${{ env.ACT || 'false' }}
+        run: |
+          if [ "$IS_ACT" = "true" ]; then
+            mkdir -p ~/.ssh
+            ssh-keyscan -H github.com >> ~/.ssh/known_hosts
+            git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{secrets.GITHUB_USER}}/adele-framework.git
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git checkout -b release/${{ steps.version.outputs.VERSION }}
+          git push origin release/${{ steps.version.outputs.VERSION }}
+
+      - name: write version tag from release
+        run: |
+          GITHUB_REF_TAG=${{ steps.version.outputs.VERSION }} go run .github/workflows/semantic-release-write-version.go
+          cat adele.go | grep  "const Version*"
+          echo "✅ Version tag written to code"
+
+      - name: commit source code
+        env:
+            IS_ACT: ${{ env.ACT || 'false' }}
+            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN}}
+        run: |
+          if [ "$IS_ACT" = "true" ]; then
+            mkdir -p ~/.ssh
+            ssh-keyscan -H github.com >> ~/.ssh/known_hosts
+            git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{secrets.GITHUB_USER}}/adele-framework.git
+          fi
+
+          if git diff --cached --quiet && git diff --quiet; then
+            echo "✅ No changes to commit"
+          else
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git checkout release/${{ steps.version.outputs.VERSION }}
+            git commit -a -m "chore: bump version to ${{ steps.version.outputs.VERSION }}"
+            git push origin release/${{ steps.version.outputs.VERSION }}
+            echo "✅ Git commit completed successfully"
+          fi
+
+      - name: Sync with base branch and handle conflicts
+        id: sync_main
+        run: |
+          echo "🔄 Checking if release branch needs updates from ${{ env.BASE_BRANCH }}..."
+
+          git fetch origin ${{ env.BASE_BRANCH }}
+
+          # Check if we're behind ${{ env.BASE_BRANCH }}
+          BEHIND_COUNT=$(git rev-list --count HEAD..origin/${{ env.BASE_BRANCH }})
+
+          if [ "$BEHIND_COUNT" -eq 0 ]; then
+            echo "✅ Release branch is up to date with ${{ env.BASE_BRANCH }}"
+            echo "sync_needed=false" >> $GITHUB_OUTPUT
+          else
+            echo "📊 Release branch is $BEHIND_COUNT commits behind ${{ env.BASE_BRANCH }}"
+            echo "sync_needed=true" >> $GITHUB_OUTPUT
+
+            # Try to merge
+            if git merge origin/${{ env.BASE_BRANCH }} --no-edit; then
+              echo "✅ Successfully merged $BEHIND_COUNT commits from ${{ env.BASE_BRANCH }}"
+
+              # Try to push (don't fail if this doesn't work)
+              if git push origin HEAD 2>/dev/null; then
+                echo "✅ Updated release branch pushed to origin"
+              else
+                echo "⚠️  Could not push updated branch (continuing anyway)"
+              fi
+
+              echo "merge_successful=true" >> $GITHUB_OUTPUT
+            else
+              echo "⚠️  Automatic merge failed - conflicts exist"
+              git merge --abort
+              echo "merge_successful=false" >> $GITHUB_OUTPUT
+            fi
+          fi
+
+      - name: create pr from workflow release branch
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ACTOR_NAME: ${{ env.GITHUB_ACTOR || github.actor }}
+        run: |
+          SOURCE_BRANCH="release/${{ steps.version.outputs.VERSION }}"
+
+          gh repo set-default ${{ github.repository }}
+
+          if [[ "${ACTOR_NAME}" != "nektos/act" ]] && [[ -n "${ACTOR_NAME}" ]]; then
+            ASSIGNEE_FLAG="--assignee ${ACTOR_NAME}"
+            echo "Using assignee: ${ACTOR_NAME}"
+          else
+            ASSIGNEE_FLAG=""
+            echo "Skipping assignee (act mode or invalid user)"
+          fi
+
+          if [ "${{ steps.sync_main.outputs.merge_successful }}" = "false" ]; then
+            PR_BODY="## 🚨 Manual conflict resolution required
+
+          This release branch has conflicts with ${{ env.BASE_BRANCH }} that need manual resolution.
+
+          **Release:** ${{ steps.version.outputs.VERSION }}
+
+          Please resolve conflicts before merging.
+
+          ---
+
+          ### Details
+          - Auto-generated from branch: \`${SOURCE_BRANCH}\`
+          - Triggered by: ${{ github.event_name }}
+          - Tag: ${{ steps.version.outputs.VERSION }}
+
+          ### Checklist
+          - [ ] Resolve merge conflicts
+          - [ ] Code review completed
+          - [ ] Tests passing
+          - [ ] Documentation updated
+
+          ---
+          *This PR was created automatically by GitHub Actions*"
+          else
+            PR_BODY="## Summary
+          This is an automatically generated pull request for release ${{ steps.version.outputs.VERSION }}
+
+          ### Changes
+          - Auto-generated from branch: \`${SOURCE_BRANCH}\`
+          - Triggered by: ${{ github.event_name }}
+          - Tag: ${{ steps.version.outputs.VERSION }}
+
+          ### Checklist
+          - [ ] Code review completed
+          - [ ] Tests passing
+          - [ ] Documentation updated
+
+          ---
+          *This PR was created automatically by GitHub Actions*"
+          fi
+
+          gh pr create \
+            --title "Auto Release PR: ${{ steps.version.outputs.VERSION }}" \
+            --body "$PR_BODY" \
+            --head "$SOURCE_BRANCH" \
+            --base "${{ env.BASE_BRANCH }}" \
+            --label "automated,needs-review" \
+            $ASSIGNEE_FLAG
+
+          echo "✅ PR created for ${SOURCE_BRANCH} → ${{ env.BASE_BRANCH }}"
+
+      - name: clean go cache
+        run: |
+          go clean -modcache
+          go clean -cache

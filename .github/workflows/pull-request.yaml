@@ -1,7 +1,7 @@
 name: create pr workflow
 
 env:
-  BASE_BRANCH: main-test
+  BASE_BRANCH: main
 
 on:
   push:

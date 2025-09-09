@@ -360,6 +360,8 @@ jobs:
             echo "Alternative extraction succeeded: $PR_NUMBER"
           fi
 
+          SOURCE_BRANCH="release/${{ steps.version.outputs.VERSION }}"
+
           # Trigger security scan via repository dispatch
           gh api repos/${{ github.repository }}/dispatches \
             --method POST \

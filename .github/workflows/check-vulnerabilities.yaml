@@ -3,10 +3,20 @@ name: check for vulnerabilities
 on:
   pull_request:
     types: [opened, synchronize]
-    # branches:
-    #   - main
-    #   - development
-    #   - "release/**"
+    branches:
+      - main
+      - development
+      - 'release/*'
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: 'PR number to scan'
+        required: false
+        default: ''
+      source_branch:
+        description: 'Source branch to scan'
+        required: false
+        default: ''
   repository_dispatch:
     types: [security-scan]
 

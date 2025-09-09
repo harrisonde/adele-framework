@@ -7,6 +7,8 @@ on:
     #   - main
     #   - development
     #   - "release/**"
+  repository_dispatch:
+    types: [security-scan]
 
 jobs:
   release:

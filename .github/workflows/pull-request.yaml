@@ -366,7 +366,8 @@ jobs:
           gh api repos/${{ github.repository }}/dispatches \
             --method POST \
             --field event_type=security-scan \
-            --field client_payload='{"pr_number":"'$PR_NUMBER'","branch":"'$SOURCE_BRANCH'"}'
+            --field client_payload[pr_number]="$PR_NUMBER" \
+            --field client_payload[branch]="$SOURCE_BRANCH"
 
       - name: clean go cache
         run: |

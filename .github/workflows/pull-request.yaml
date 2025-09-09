@@ -340,6 +340,8 @@ jobs:
           echo "✅ PR created for ${SOURCE_BRANCH} → ${{ env.BASE_BRANCH }}"
 
       - name: trigger security scan
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           # Extract PR number
           PR_URL="${{ steps.create-pr.outputs.pr_url }}"

@@ -24,6 +24,111 @@ jobs:
   release:
     runs-on: ["self-hosted", "macOS", "ARM64", "cidekar", "macos-arm64"]
     steps:
+      - name: install github cli
+        run: |
+          # Check if already installed
+          if command -v gh &> /dev/null; then
+            echo "GitHub CLI already available: $(gh --version)"
+            exit 0
+          fi
+
+          echo "Installing GitHub CLI via direct download..."
+
+          # Use latest version or specify a known working version
+          GH_VERSION="2.62.0"
+
+          # Detect platform and architecture
+          OS=$(uname -s | tr '[:upper:]' '[:lower:]')
+          ARCH=$(uname -m)
+
+          # Map architecture names to GitHub CLI conventions
+          case $ARCH in
+            x86_64) GH_ARCH="amd64" ;;
+            aarch64) GH_ARCH="arm64" ;;
+            arm64) GH_ARCH="arm64" ;;
+            *) echo "Unsupported architecture: $ARCH"; exit 1 ;;
+          esac
+
+          # Set correct filename format based on OS
+          case $OS in
+            linux)
+              FILENAME="gh_${GH_VERSION}_linux_${GH_ARCH}.tar.gz"
+              EXTRACT_CMD="tar -xzf"
+              ;;
+            darwin)
+              # macOS uses .zip format, not .tar.gz
+              FILENAME="gh_${GH_VERSION}_macOS_${GH_ARCH}.zip"
+              EXTRACT_CMD="unzip -q"
+              ;;
+            *) echo "Unsupported OS: $OS"; exit 1 ;;
+          esac
+
+          DOWNLOAD_URL="https://github.com/cli/cli/releases/download/v${GH_VERSION}/${FILENAME}"
+
+          echo "Downloading: $DOWNLOAD_URL"
+
+          # Create temp directory
+          TEMP_DIR=$(mktemp -d)
+          cd "$TEMP_DIR"
+
+          # Download
+          curl -fsSL "$DOWNLOAD_URL" -o "gh_archive" || {
+            echo "Failed to download GitHub CLI from $DOWNLOAD_URL"
+            echo "File might not exist. Checking available releases..."
+            curl -s "https://api.github.com/repos/cli/cli/releases/latest" | grep "browser_download_url" | grep -E "(macOS|linux)" | head -5
+            exit 1
+          }
+
+          # Extract based on file type
+          $EXTRACT_CMD gh_archive || {
+            echo "Failed to extract archive"
+            exit 1
+          }
+
+          # The extracted directory should match the filename (without extension)
+          case $OS in
+            linux)
+              EXTRACTED_DIR="gh_${GH_VERSION}_linux_${GH_ARCH}"
+              ;;
+            darwin)
+              EXTRACTED_DIR="gh_${GH_VERSION}_macOS_${GH_ARCH}"
+              ;;
+          esac
+
+          # Verify the extracted directory exists
+          if [ ! -d "$EXTRACTED_DIR" ]; then
+            echo "Expected directory $EXTRACTED_DIR not found. Contents:"
+            ls -la
+            exit 1
+          fi
+
+          # Install the binary
+          if [ -w /usr/local/bin ] 2>/dev/null; then
+            cp "${EXTRACTED_DIR}/bin/gh" /usr/local/bin/gh
+            chmod +x /usr/local/bin/gh
+            echo "Installed to /usr/local/bin/gh"
+          else
+            # Install to user directory
+            mkdir -p "$HOME/bin"
+            cp "${EXTRACTED_DIR}/bin/gh" "$HOME/bin/gh"
+            chmod +x "$HOME/bin/gh"
+            echo "$HOME/bin" >> $GITHUB_PATH
+            export PATH="$HOME/bin:$PATH"
+            echo "Installed to $HOME/bin/gh"
+          fi
+
+          # Cleanup
+          cd /
+          rm -rf "$TEMP_DIR"
+
+          # Verify installation
+          if command -v gh &> /dev/null; then
+            echo "✅ GitHub CLI installed successfully: $(gh --version)"
+          else
+            echo "❌ GitHub CLI installation failed"
+            exit 1
+          fi
+
       - name: add go (production)
         uses: actions/setup-go@v5
         if: ${{ !env.ACT }}

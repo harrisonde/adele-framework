@@ -3,17 +3,14 @@ name: check for vulnerabilities
 on:
   pull_request:
     types: [opened, synchronize]
-    branches:
-      - main
-      - development
-      - release/*
+    # branches:
+    #   - main
+    #   - development
+    #   - "release/**"
 
 jobs:
   release:
     runs-on: ["self-hosted", "macOS", "ARM64", "cidekar", "macos-arm64"]
-    permissions:
-      contents: read
-      actions: read
     steps:
       - name: add go (production)
         uses: actions/setup-go@v5

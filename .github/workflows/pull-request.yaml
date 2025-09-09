@@ -335,6 +335,17 @@ jobs:
 
           echo "✅ PR created for ${SOURCE_BRANCH} → ${{ env.BASE_BRANCH }}"
 
+      - name: trigger security scan
+        run: |
+          # Extract PR number
+          PR_NUMBER=$(echo $PR_URL | grep -o '[0-9]\+$')
+
+          # Trigger security scan via repository dispatch
+          gh api repos/${{ github.repository }}/dispatches \
+            --method POST \
+            --field event_type=security-scan \
+            --field client_payload='{"pr_number":"'$PR_NUMBER'","branch":"'$SOURCE_BRANCH'"}'
+
       - name: clean go cache
         run: |
           go clean -modcache

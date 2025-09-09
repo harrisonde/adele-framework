@@ -390,27 +390,39 @@ jobs:
           fi
 
       - name: Comment on PR (if applicable)
-        if: github.event_name == 'pull_request'
+        if: |
+          (github.event_name == 'pull_request') ||
+          (github.event_name == 'repository_dispatch' && github.event.client_payload.pr_number != '')
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          if command -v gh &> /dev/null; then
-            # Check if comment already exists
-            COMMENT_ID=$(gh api \
-              "repos/${{ github.repository }}/issues/${{ github.event.number }}/comments" \
-              --jq '.[] | select(.body | contains("🔍 Nancy Security Scan Results")) | .id' \
-              | head -1 2>/dev/null || echo "")
+          echo "🔍 Debug Information:"
+          echo "Event name: ${{ github.event_name }}"
+          echo "Event action: ${{ github.event.action }}"
 
-            if [ -n "$COMMENT_ID" ]; then
-              echo "Updating existing comment ID: $COMMENT_ID"
-              gh api \
-                "repos/${{ github.repository }}/issues/comments/$COMMENT_ID" \
-                --method PATCH \
-                --field body@nancy-report.md
-            else
-              echo "Creating new comment"
-              gh pr comment ${{ github.event.number }} --body-file nancy-report.md
-            fi
-          else
-            echo "GitHub CLI not available for PR commenting"
+          # Determine PR number
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            PR_NUMBER="${{ github.event.number }}"
+            echo "Direct PR event - PR #$PR_NUMBER"
+          elif [ "${{ github.event_name }}" = "repository_dispatch" ]; then
+            PR_NUMBER="${{ github.event.client_payload.pr_number }}"
+            echo "Repository dispatch event - PR #$PR_NUMBER"
+            echo "Dispatch branch: ${{ github.event.client_payload.branch }}"
           fi
+
+          echo "Final PR number: $PR_NUMBER"
+
+          # Test GitHub CLI access
+          echo "Testing GitHub CLI access..."
+          gh auth status
+
+          # Test API access to the PR
+          echo "Testing API access to PR #$PR_NUMBER..."
+          gh api "repos/${{ github.repository }}/issues/$PR_NUMBER" --jq '{number: .number, title: .title, state: .state}' || {
+            echo "❌ Failed to access PR #$PR_NUMBER"
+            exit 1
+          }
+
+          # If we get here, try commenting
+          echo "Creating comment on PR #$PR_NUMBER"
+          gh pr comment $PR_NUMBER --body-file nancy-report.md

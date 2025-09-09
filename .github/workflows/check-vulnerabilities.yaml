@@ -1,0 +1,296 @@
+name: check for vulnerabilities
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+    branches:
+      - main
+      - development
+
+jobs:
+  release:
+    runs-on: ["self-hosted", "macOS", "ARM64", "cidekar", "macos-arm64"]
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - name: add go (production)
+        uses: actions/setup-go@v5
+        if: ${{ !env.ACT }}
+        with:
+          go-version: '1.21'
+          cache: false
+
+      - name: add go (testing)
+        if: ${{ env.ACT }}
+        run: |
+          echo "Checking for Go installation..."
+
+          if command -v go &> /dev/null; then
+            echo "✅ Go already available: $(go version)"
+          else
+            echo "Installing Go without package manager..."
+
+            # Create directory in user space (no sudo needed)
+            mkdir -p $HOME/go-install
+            cd $HOME/go-install
+
+            # Download Go using curl (more likely to be available than wget)
+            if command -v curl &> /dev/null; then
+              echo "Downloading Go 1.21.5..."
+              curl -sL https://go.dev/dl/go1.21.5.linux-amd64.tar.gz -o go.tar.gz
+
+              # Extract to home directory (no root needed)
+              tar -xzf go.tar.gz
+
+              # Set up paths
+              export GOROOT="$HOME/go-install/go"
+              export PATH="$GOROOT/bin:$PATH"
+              echo "$GOROOT/bin" >> $GITHUB_PATH
+
+              echo "✅ Go installed to: $GOROOT"
+            else
+              echo "❌ curl not available, cannot install Go"
+              exit 1
+            fi
+          fi
+
+          # Final verification
+          echo "Go version check:"
+          go version
+
+      - name: setup go directories for act
+        if: ${{ env.ACT }}
+        run: |
+          mkdir -p /github/workspace/.gocache
+          mkdir -p /github/workspace/.gotmp
+          chmod -R 777 /github/workspace/.gocache /github/workspace/.gotmp
+
+      - name: checkout the repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Generate dependency list and count
+        run: |
+          echo "Generating dependency list..."
+
+          # Generate the dependency list
+          go list -json -deps ./... > go.list
+
+          # Count dependencies using Go instead of jq
+          DEP_COUNT=$(go list -deps ./... | wc -l | tr -d ' ')
+
+          # Alternative method: count unique modules
+          MODULE_COUNT=$(go list -m all | wc -l | tr -d ' ')
+
+          # Get direct dependencies from go.mod
+          DIRECT_DEPS=$(go list -m -f '{{if not .Main}}{{.Path}}{{end}}' all | wc -l | tr -d ' ')
+
+          echo "DEPENDENCY_COUNT=$DEP_COUNT" >> $GITHUB_ENV
+          echo "MODULE_COUNT=$MODULE_COUNT" >> $GITHUB_ENV
+          echo "DIRECT_DEPS=$DIRECT_DEPS" >> $GITHUB_ENV
+
+          echo "📊 Dependency Analysis:"
+          echo "  - Total packages: $DEP_COUNT"
+          echo "  - Total modules: $MODULE_COUNT"
+          echo "  - Direct dependencies: $DIRECT_DEPS"
+
+      - name: Install Nancy
+        run: |
+          echo "Installing Nancy..."
+          go install github.com/sonatype-nexus-community/nancy@latest
+          nancy --version
+
+      - name: Run Nancy scan with authentication
+        env:
+          OSS_INDEX_USERNAME: ${{ secrets.OSS_INDEX_USERNAME }}
+          OSS_INDEX_TOKEN: ${{ secrets.OSS_INDEX_TOKEN }}
+        run: |
+          echo "Running Nancy security scan with authentication..."
+          echo "📦 Packages to scan: $DEPENDENCY_COUNT"
+          echo "📚 Modules to scan: $MODULE_COUNT"
+
+          # Run Nancy with authentication and capture detailed output
+          START_TIME=$(date +%s)
+
+          if go list -json -deps ./... | nancy sleuth \
+            --username "$OSS_INDEX_USERNAME" \
+            --token "$OSS_INDEX_TOKEN" \
+            --output text \
+            --loud > nancy-detailed.txt 2>&1; then
+            SCAN_STATUS="success"
+            VULNERABILITY_COUNT=0
+          else
+            SCAN_STATUS="vulnerabilities_found"
+            VULNERABILITY_COUNT=$(grep -c "Vulnerability found\|CVE-" nancy-detailed.txt 2>/dev/null || echo "0")
+          fi
+
+          echo "nancy-detailed.txt"
+          cat nancy-detailed.txt
+
+          END_TIME=$(date +%s)
+          SCAN_DURATION=$((END_TIME - START_TIME))
+
+          echo "SCAN_STATUS=$SCAN_STATUS" >> $GITHUB_ENV
+          echo "VULNERABILITY_COUNT=$VULNERABILITY_COUNT" >> $GITHUB_ENV
+          echo "SCAN_DURATION=$SCAN_DURATION" >> $GITHUB_ENV
+
+          echo "✅ Scan completed in ${SCAN_DURATION}s"
+          echo "📊 Vulnerabilities found: $VULNERABILITY_COUNT"
+
+          # Also generate clean output for summary
+          if [ "$SCAN_STATUS" = "success" ]; then
+            echo "✅ No vulnerabilities found" > nancy-summary.txt
+          else
+            go list -json -deps ./... | nancy sleuth \
+              --username "$OSS_INDEX_USERNAME" \
+              --token "$OSS_INDEX_TOKEN" \
+              --output text > nancy-summary.txt 2>&1 || true
+          fi
+
+      - name: Generate comprehensive report
+        run: |
+          cat > nancy-report.md << EOF
+          ## 🔍 Nancy Security Scan Results
+
+          | Field | Value |
+          |-------|--------|
+          | 📅 Scan Date | $(date) |
+          | 📦 Repository | ${{ github.repository }} |
+          | 🔀 Event | ${{ github.event_name }} |
+          | 🏃 Workflow Run | [\#${{ github.run_number }}](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}) |
+          | 📊 Total Packages | $DEPENDENCY_COUNT |
+          | 📚 Total Modules | $MODULE_COUNT |
+          | 📋 Direct Dependencies | $DIRECT_DEPS |
+          | ⏱️ Scan Duration | ${SCAN_DURATION}s |
+          | 🔑 Authenticated | ✅ Yes (1,200 req/hour) |
+          | 🖥️ Runner | Self-hosted macOS ARM64 |
+
+          ---
+
+          EOF
+
+          if [ "$SCAN_STATUS" = "success" ]; then
+            cat >> nancy-report.md << EOF
+          ### ✅ SCAN PASSED
+
+          🎉 **No vulnerabilities detected!**
+
+          All $DEPENDENCY_COUNT packages across $MODULE_COUNT modules are secure. Great job maintaining a secure codebase!
+
+          **Dependency Summary:**
+          - 📦 **$DEPENDENCY_COUNT** total packages scanned
+          - 📚 **$MODULE_COUNT** modules analyzed
+          - 📋 **$DIRECT_DEPS** direct dependencies
+
+          EOF
+          else
+            cat >> nancy-report.md << EOF
+          ### ❌ VULNERABILITIES FOUND
+
+          ⚠️ **Found $VULNERABILITY_COUNT vulnerabilities** across $DEPENDENCY_COUNT packages.
+
+          **Scan Overview:**
+          - 📦 **$DEPENDENCY_COUNT** packages scanned
+          - 📚 **$MODULE_COUNT** modules analyzed
+          - 📋 **$DIRECT_DEPS** direct dependencies
+          - 🚨 **$VULNERABILITY_COUNT** vulnerabilities detected
+
+          <details>
+          <summary>📋 Click to view detailed scan results</summary>
+
+          \`\`\`
+          $(cat nancy-summary.txt)
+          \`\`\`
+
+          </details>
+
+          ### 🔧 Recommended Actions:
+
+          1. **Review each vulnerability** listed above
+          2. **Update vulnerable packages** to secure versions:
+             \`\`\`bash
+             go get -u vulnerable/package@secure-version
+             go mod tidy
+             \`\`\`
+          3. **Re-run the scan** to verify fixes
+          4. **Check dependency tree** for transitive dependencies:
+             \`\`\`bash
+             go mod graph | grep vulnerable-package
+             \`\`\`
+          5. **Consider alternatives** if updates aren't available
+          6. **Add exceptions** for false positives using \`.nancy-ignore\`
+
+          EOF
+          fi
+
+          cat >> nancy-report.md << EOF
+          ---
+
+          **Scan Details:**
+          - **Rate Limit:** Authenticated (1,200 req/hour vs 120 anonymous)
+          - **Database:** [Sonatype OSS Index](https://ossindex.sonatype.org/)
+          - **Tool:** [Nancy v$(nancy --version 2>/dev/null | head -1 || echo "latest")]
+
+          *🤖 Automated security scanning by [Nancy](https://github.com/sonatype-nexus-community/nancy)*
+          EOF
+
+      - name: Show scan summary
+        run: |
+          echo "=================== SCAN SUMMARY ==================="
+          echo "📦 Packages scanned: $DEPENDENCY_COUNT"
+          echo "📚 Modules analyzed: $MODULE_COUNT"
+          echo "📋 Direct dependencies: $DIRECT_DEPS"
+          echo "⏱️ Scan duration: ${SCAN_DURATION}s"
+          echo "🚨 Vulnerabilities: $VULNERABILITY_COUNT"
+          echo "✅ Status: $SCAN_STATUS"
+          echo "🖥️ Runner: Self-hosted macOS ARM64"
+          echo "=================================================="
+
+      - name: Upload scan report
+        uses: actions/upload-artifact@v3
+        with:
+          name: nancy-security-report
+          path: |
+            nancy-report.md
+            nancy-detailed.txt
+            nancy-summary.txt
+          retention-days: 30
+
+      - name: Set job status
+        run: |
+          if [ "$SCAN_STATUS" = "success" ]; then
+            echo "✅ Security scan passed - no vulnerabilities found"
+            exit 0
+          else
+            echo "❌ Security scan failed - $VULNERABILITY_COUNT vulnerabilities found"
+            echo "Review the scan results and update vulnerable dependencies"
+            exit 1
+          fi
+
+      - name: Comment on PR (if applicable)
+        if: github.event_name == 'pull_request'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if command -v gh &> /dev/null; then
+            # Check if comment already exists
+            COMMENT_ID=$(gh api \
+              "repos/${{ github.repository }}/issues/${{ github.event.number }}/comments" \
+              --jq '.[] | select(.body | contains("🔍 Nancy Security Scan Results")) | .id' \
+              | head -1 2>/dev/null || echo "")
+
+            if [ -n "$COMMENT_ID" ]; then
+              echo "Updating existing comment ID: $COMMENT_ID"
+              gh api \
+                "repos/${{ github.repository }}/issues/comments/$COMMENT_ID" \
+                --method PATCH \
+                --field body@nancy-report.md
+            else
+              echo "Creating new comment"
+              gh pr comment ${{ github.event.number }} --body-file nancy-report.md
+            fi
+          else
+            echo "GitHub CLI not available for PR commenting"
+          fi

@@ -389,40 +389,89 @@ jobs:
             exit 1
           fi
 
-      - name: Comment on PR (if applicable)
+      - name: Comment on PR (REST API)
         if: |
           (github.event_name == 'pull_request') ||
           (github.event_name == 'repository_dispatch' && github.event.client_payload.pr_number != '')
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          echo "🔍 Debug Information:"
-          echo "Event name: ${{ github.event_name }}"
-          echo "Event action: ${{ github.event.action }}"
+          echo "🔍 Attempting PR comment via REST API..."
 
-          # Determine PR number
+          # Determine PR number based on trigger type
           if [ "${{ github.event_name }}" = "pull_request" ]; then
             PR_NUMBER="${{ github.event.number }}"
             echo "Direct PR event - PR #$PR_NUMBER"
           elif [ "${{ github.event_name }}" = "repository_dispatch" ]; then
             PR_NUMBER="${{ github.event.client_payload.pr_number }}"
             echo "Repository dispatch event - PR #$PR_NUMBER"
-            echo "Dispatch branch: ${{ github.event.client_payload.branch }}"
+          else
+            echo "No PR to comment on for event: ${{ github.event_name }}"
+            exit 0
           fi
 
-          echo "Final PR number: $PR_NUMBER"
+          # Validate PR number
+          if [ -z "$PR_NUMBER" ] || [ "$PR_NUMBER" = "null" ]; then
+            echo "No valid PR number found, skipping comment"
+            exit 0
+          fi
 
-          # Test GitHub CLI access
-          echo "Testing GitHub CLI access..."
-          gh auth status
+          echo "Processing PR #$PR_NUMBER"
 
-          # Test API access to the PR
-          echo "Testing API access to PR #$PR_NUMBER..."
-          gh api "repos/${{ github.repository }}/issues/$PR_NUMBER" --jq '{number: .number, title: .title, state: .state}' || {
-            echo "❌ Failed to access PR #$PR_NUMBER"
-            exit 1
-          }
+          # Check if comment already exists using REST API
+          echo "Checking for existing comments..."
+          EXISTING_COMMENTS=$(curl -s \
+            -H "Authorization: token $GITHUB_TOKEN" \
+            -H "Accept: application/vnd.github.v3+json" \
+            "https://api.github.com/repos/${{ github.repository }}/issues/$PR_NUMBER/comments")
 
-          # If we get here, try commenting
-          echo "Creating comment on PR #$PR_NUMBER"
-          gh pr comment $PR_NUMBER --body-file nancy-report.md
+          # Look for existing Nancy comment
+          COMMENT_ID=$(echo "$EXISTING_COMMENTS" | jq -r '.[] | select(.body | contains("🔍 Nancy Security Scan Results")) | .id' | head -1)
+
+          # Prepare comment body (escape for JSON)
+          COMMENT_BODY=$(cat nancy-report.md | jq -Rs .)
+
+          if [ "$COMMENT_ID" != "" ] && [ "$COMMENT_ID" != "null" ]; then
+            echo "Updating existing comment ID: $COMMENT_ID"
+
+            # Update existing comment
+            HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
+              -X PATCH \
+              -H "Authorization: token $GITHUB_TOKEN" \
+              -H "Accept: application/vnd.github.v3+json" \
+              "https://api.github.com/repos/${{ github.repository }}/issues/comments/$COMMENT_ID" \
+              -d "{\"body\": $COMMENT_BODY}")
+
+            if [ "$HTTP_STATUS" = "200" ]; then
+              echo "✅ Comment updated successfully"
+            else
+              echo "❌ Failed to update comment (HTTP $HTTP_STATUS)"
+              echo "📁 Report available as artifact instead"
+            fi
+
+          else
+            echo "Creating new comment on PR #$PR_NUMBER"
+
+            # Create new comment
+            HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
+              -X POST \
+              -H "Authorization: token $GITHUB_TOKEN" \
+              -H "Accept: application/vnd.github.v3+json" \
+              "https://api.github.com/repos/${{ github.repository }}/issues/$PR_NUMBER/comments" \
+              -d "{\"body\": $COMMENT_BODY}")
+
+            if [ "$HTTP_STATUS" = "201" ]; then
+              echo "✅ Comment created successfully"
+            else
+              echo "❌ Failed to create comment (HTTP $HTTP_STATUS)"
+              echo "📁 Report available as artifact instead"
+            fi
+          fi
+
+          # Always show summary regardless of comment success
+          echo ""
+          echo "📊 Security Scan Summary:"
+          echo "- Status: $SCAN_STATUS"
+          echo "- Vulnerabilities: $VULNERABILITY_COUNT"
+          echo "- Packages scanned: $DEPENDENCY_COUNT"
+          echo "📁 Full report: nancy-security-report artifact"
